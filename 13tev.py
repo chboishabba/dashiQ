@@ -32,8 +32,9 @@ from numpy.linalg import inv
 # ----------------------------
 HEPDATA_RECORD = "137886"  # ATLAS 13 TeV H→γγ differential XS
 OBSERVABLES = [
-    ("pT_yy", "pT_yy_corr"),
-    ("N_j_30", "N_j_30_corr"),
+    ("pT_yy", "pT_yy_corr", "log"),
+    ("N_j_30", "N_j_30_corr", "log"),
+    ("N_j_30", "N_j_30_corr", "ordinal"),
 ]
 
 MDL_LAMBDA = 1.0  # strength of MDL penalty
@@ -190,43 +191,47 @@ def _get_json(url, context="resource"):
 # ----------------------------
 # Models
 # ----------------------------
-def _log_basis(x):
+def _basis(x, basis):
     x0 = np.mean(x)
-    return np.log(x / x0)
+    if basis == "log":
+        return np.log(x / x0)
+    if basis == "ordinal":
+        return x - x0
+    raise ValueError(f"Unknown basis: {basis}")
 
 
-def model_A(params, x, y_ref):
+def model_A(params, x, y_ref, basis):
     log_a = params[0]
     return np.exp(log_a) * y_ref
 
 
-def model_B(params, x, y_ref):
+def model_B(params, x, y_ref, basis):
     log_a, b = params
-    u = _log_basis(x)
+    u = _basis(x, basis)
     return np.exp(log_a + b * u) * y_ref
 
 
-def model_C(params, x, y_ref):
+def model_C(params, x, y_ref, basis):
     log_a, b, c = params
-    u = _log_basis(x)
+    u = _basis(x, basis)
     return np.exp(log_a + b * u + c * u ** 2) * y_ref
 
 
 # ----------------------------
 # Fit + MDL
 # ----------------------------
-def chi2(params, model, x, y, y_sm, cov_inv):
-    diff = y - model(params, x, y_sm)
+def chi2(params, model, x, y, y_sm, cov_inv, basis):
+    diff = y - model(params, x, y_sm, basis)
     return diff.T @ cov_inv @ diff
 
 
-def fit_model(model, n_params, x, y, y_sm, cov_inv):
+def fit_model(model, n_params, x, y, y_sm, cov_inv, basis):
     init = np.zeros(n_params)
     init[0] = np.log(np.mean(y))
     res = minimize(
         chi2,
         init,
-        args=(model, x, y, y_sm, cov_inv),
+        args=(model, x, y, y_sm, cov_inv, basis),
         method="Nelder-Mead"
     )
     return res.fun, res.x
@@ -239,7 +244,7 @@ def mdl_score(chi2_val, k, n):
 # ----------------------------
 # MAIN
 # ----------------------------
-def run_one(table_name, corr_table_name):
+def run_one(table_name, corr_table_name, basis):
     xs_table = fetch_table(HEPDATA_RECORD, table_name)
     corr_table = fetch_table(HEPDATA_RECORD, corr_table_name)
 
@@ -256,9 +261,9 @@ def run_one(table_name, corr_table_name):
 
     n = len(y)
 
-    chi2_A, _ = fit_model(model_A, 1, x, y, y_ref, cov_inv)
-    chi2_B, _ = fit_model(model_B, 2, x, y, y_ref, cov_inv)
-    chi2_C, _ = fit_model(model_C, 3, x, y, y_ref, cov_inv)
+    chi2_A, _ = fit_model(model_A, 1, x, y, y_ref, cov_inv, basis)
+    chi2_B, _ = fit_model(model_B, 2, x, y, y_ref, cov_inv, basis)
+    chi2_C, _ = fit_model(model_C, 3, x, y, y_ref, cov_inv, basis)
 
     mdl_A = mdl_score(chi2_A, 1, n)
     mdl_B = mdl_score(chi2_B, 2, n)
@@ -271,12 +276,14 @@ def main():
     print("Downloading HEPData tables...")
 
     locked = []
-    for table_name, corr_table_name in OBSERVABLES:
+    atlas_rows = []
+    for table_name, corr_table_name, basis in OBSERVABLES:
         print(f"\n=== Observable: {table_name} (corr: {corr_table_name}) ===")
         try:
             (chi2_A, mdl_A), (chi2_B, mdl_B), (chi2_C, mdl_C) = run_one(
                 table_name,
                 corr_table_name,
+                basis,
             )
         except RuntimeError as exc:
             print(f"Skipping {table_name}: {exc}")
@@ -300,7 +307,25 @@ def main():
             key=lambda x: x[1]
         )
         print(f"→ Best by MDL: Model {best[0]}")
-        locked.append((table_name, best[0]))
+        if basis == "log":
+            locked.append((table_name, best[0]))
+
+        mdls = {"A": mdl_A, "B": mdl_B, "C": mdl_C}
+        sorted_mdls = sorted(mdls.items(), key=lambda kv: kv[1])
+        margin = sorted_mdls[1][1] - sorted_mdls[0][1]
+        if best[0] == "A":
+            detail = "normalization only"
+        elif best[0] == "B":
+            detail = "one shape DOF"
+        else:
+            detail = "curvature"
+        if margin < 1.0:
+            strength = "weak"
+        elif margin < 3.0:
+            strength = "moderate"
+        else:
+            strength = "strong"
+        atlas_rows.append((table_name, basis, best[0], margin, detail, strength))
 
     if locked:
         print("\nLocked Path C result (full covariance):")
@@ -313,6 +338,13 @@ def main():
                 detail = "curvature"
             print(f"- {table_name}: Model {best} ({detail})")
         print("Conclusion: minimal shape complexity is observable-dependent under full covariance.")
+
+    if atlas_rows:
+        print("\nCOMPLEXITY ATLAS (MDL, full covariance)")
+        print("observable   basis    best   margin   notes")
+        for table_name, basis, best, margin, detail, strength in atlas_rows:
+            notes = f"{detail}; {strength} preference"
+            print(f"{table_name:<11} {basis:<8} {best:<5} {margin:>6.2f}   {notes}")
 
 
 if __name__ == "__main__":
