@@ -162,6 +162,8 @@ def show_table(record, table_index):
     values = table_data.get("values", [])
     if values:
         print(f"First value: {values[0]}")
+        if len(values) <= 20:
+            print("All x entries:", [v["x"][0] for v in values])
 
 
 def parse_args(argv):
@@ -188,9 +190,9 @@ def main(argv):
 
     # Default action: run a targeted search without requiring args.
     # Default: search for ATLAS 139 fb-1 Higgs differential records.
-    # Default: scan tables for correlation/covariance and theory/prediction hints.
+    # Default: inspect N_j_30 bin format for parsing.
     default_record = "137886"
-    show_tables(default_record)
+    show_table(default_record, 2)
     return 0
 
     if args.record and args.tables:

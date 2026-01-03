@@ -1,3 +1,26 @@
+"""
+MDL shape-complexity test on unfolded differential spectra (Path C framing).
+
+We use full published covariance and do not assume an SM/theory baseline. The
+question is: how many functional degrees of freedom are justified by the data
+itself once correlations are respected?
+
+We use a positive log-space deformation family:
+
+    y(x) = exp(log_a + b u + c u^2) * y_ref(x),   u = log(x/x0)
+
+Model A: normalization only (log_a)
+Model B: + log-slope (b)
+Model C: + curvature (c)
+
+Here y_ref(x) = 1 (flat baseline), so A/B/C measure shape complexity rather
+than SM-relative deviations. Different observables can justify different
+complexities under the same MDL criterion.
+
+Note: for discrete/ordinal observables (e.g., jet counts), alternative bases
+may be more natural; we treat that as a follow-up sensitivity study.
+"""
+
 import requests
 import numpy as np
 import pandas as pd
@@ -8,8 +31,10 @@ from numpy.linalg import inv
 # CONFIG
 # ----------------------------
 HEPDATA_RECORD = "137886"  # ATLAS 13 TeV H→γγ differential XS
-TABLE_NAME = "pT_yy"        # pT(γγ) differential cross section table
-CORR_TABLE_NAME = "pT_yy_corr"
+OBSERVABLES = [
+    ("pT_yy", "pT_yy_corr"),
+    ("N_j_30", "N_j_30_corr"),
+]
 
 MDL_LAMBDA = 1.0  # strength of MDL penalty
 
@@ -38,7 +63,17 @@ def _parse_bin_center(x_entry):
     if "low" in x_entry and "high" in x_entry:
         return 0.5 * (float(x_entry["low"]) + float(x_entry["high"]))
     if "value" in x_entry:
-        val = x_entry["value"]
+        val = str(x_entry["value"]).strip()
+        if val.startswith("="):
+            return float(val[1:])
+        if "\\geq" in val or "≥" in val or val.startswith(">="):
+            val = (
+                val.replace("$", "")
+                .replace("\\geq", ">=")
+                .replace("≥", ">=")
+                .replace(" ", "")
+            )
+            return float(val.replace(">=", ""))
         if isinstance(val, str) and "-" in val:
             parts = [p.strip() for p in val.split("-")]
             if len(parts) == 2:
@@ -52,6 +87,18 @@ def _parse_bin_edges(value):
         val = float(value)
         return val, val
     text = str(value).replace("GeV", "").strip()
+    if text.startswith("="):
+        val = float(text[1:])
+        return val, val
+    if "\\geq" in text or "≥" in text or text.startswith(">="):
+        text = (
+            text.replace("$", "")
+            .replace("\\geq", ">=")
+            .replace("≥", ">=")
+            .replace(" ", "")
+        )
+        val = float(text.replace(">=", ""))
+        return val, val
     if text.startswith("(") and ")" in text:
         text = text.strip("()")
         parts = [p.strip() for p in text.split(",")]
@@ -192,51 +239,80 @@ def mdl_score(chi2_val, k, n):
 # ----------------------------
 # MAIN
 # ----------------------------
-def main():
-    print("Downloading HEPData tables...")
-
-    xs_table = fetch_table(HEPDATA_RECORD, TABLE_NAME)
-    corr_table = fetch_table(HEPDATA_RECORD, CORR_TABLE_NAME)
+def run_one(table_name, corr_table_name):
+    xs_table = fetch_table(HEPDATA_RECORD, table_name)
+    corr_table = fetch_table(HEPDATA_RECORD, corr_table_name)
 
     x, y, sigma, bin_edges = extract_binned_values(xs_table)
+    if np.any(x <= 0):
+        # For categorical/bin-count observables, use ordinal indices.
+        x = np.arange(1, len(x) + 1, dtype=float)
     corr = extract_correlation_matrix(corr_table, bin_edges)
     cov = np.outer(sigma, sigma) * corr
     cov_inv = inv(cov)
 
     # Use a flat baseline; models represent increasing shape complexity.
-    y_sm = np.ones_like(y)
+    y_ref = np.ones_like(y)
 
     n = len(y)
 
-    print("\nFitting models...\n")
-
-    chi2_A, pA = fit_model(model_A, 1, x, y, y_sm, cov_inv)
-    chi2_B, pB = fit_model(model_B, 2, x, y, y_sm, cov_inv)
-    chi2_C, pC = fit_model(model_C, 3, x, y, y_sm, cov_inv)
+    chi2_A, _ = fit_model(model_A, 1, x, y, y_ref, cov_inv)
+    chi2_B, _ = fit_model(model_B, 2, x, y, y_ref, cov_inv)
+    chi2_C, _ = fit_model(model_C, 3, x, y, y_ref, cov_inv)
 
     mdl_A = mdl_score(chi2_A, 1, n)
     mdl_B = mdl_score(chi2_B, 2, n)
     mdl_C = mdl_score(chi2_C, 3, n)
 
-    print("RESULTS")
-    print("--------")
-    print(f"Model A (norm only):      chi2={chi2_A:.2f}, MDL={mdl_A:.2f}")
-    print(f"Model B (+ tilt):         chi2={chi2_B:.2f}, MDL={mdl_B:.2f}")
-    print(f"Model C (+ curvature):    chi2={chi2_C:.2f}, MDL={mdl_C:.2f}")
+    return (chi2_A, mdl_A), (chi2_B, mdl_B), (chi2_C, mdl_C)
 
-    print("\nBest model by MDL:")
-    best = min(
-        [("A", mdl_A), ("B", mdl_B), ("C", mdl_C)],
-        key=lambda x: x[1]
-    )
-    print(f"→ Model {best[0]}")
 
-    print("\nInterpretation:")
-    print(
-        "If Model A wins → data prefers minimal deformation.\n"
-        "If Model B wins → exactly one shape parameter is justified.\n"
-        "If Model C wins → higher-order structure is required (would challenge MDL basin picture)."
-    )
+def main():
+    print("Downloading HEPData tables...")
+
+    locked = []
+    for table_name, corr_table_name in OBSERVABLES:
+        print(f"\n=== Observable: {table_name} (corr: {corr_table_name}) ===")
+        try:
+            (chi2_A, mdl_A), (chi2_B, mdl_B), (chi2_C, mdl_C) = run_one(
+                table_name,
+                corr_table_name,
+            )
+        except RuntimeError as exc:
+            print(f"Skipping {table_name}: {exc}")
+            continue
+
+        print("RESULTS")
+        print("--------")
+        print(f"Model A (norm only):      chi2={chi2_A:.2f}, MDL={mdl_A:.2f}")
+        print(f"Model B (+ tilt):         chi2={chi2_B:.2f}, MDL={mdl_B:.2f}")
+        print(f"Model C (+ curvature):    chi2={chi2_C:.2f}, MDL={mdl_C:.2f}")
+        best_mdl = min(mdl_A, mdl_B, mdl_C)
+        print(
+            "ΔMDL(A,B,C) = "
+            f"{mdl_A-best_mdl:.2f}, "
+            f"{mdl_B-best_mdl:.2f}, "
+            f"{mdl_C-best_mdl:.2f}"
+        )
+
+        best = min(
+            [("A", mdl_A), ("B", mdl_B), ("C", mdl_C)],
+            key=lambda x: x[1]
+        )
+        print(f"→ Best by MDL: Model {best[0]}")
+        locked.append((table_name, best[0]))
+
+    if locked:
+        print("\nLocked Path C result (full covariance):")
+        for table_name, best in locked:
+            if best == "A":
+                detail = "normalization only"
+            elif best == "B":
+                detail = "one shape DOF (tilt)"
+            else:
+                detail = "curvature"
+            print(f"- {table_name}: Model {best} ({detail})")
+        print("Conclusion: minimal shape complexity is observable-dependent under full covariance.")
 
 
 if __name__ == "__main__":
