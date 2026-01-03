@@ -5,17 +5,19 @@ We use full published covariance and do not assume an SM/theory baseline. The
 question is: how many functional degrees of freedom are justified by the data
 itself once correlations are respected?
 
-We use a positive log-space deformation family:
+We use a positive deformation family over a chosen basis:
 
-    y(x) = exp(log_a + b u + c u^2) * y_ref(x),   u = log(x/x0)
+    y(x) = exp(log_a + b u + c u^2) * y_ref(x),   u = basis(x)
 
 Model A: normalization only (log_a)
 Model B: + log-slope (b)
 Model C: + curvature (c)
 
 Here y_ref(x) = 1 (flat baseline), so A/B/C measure shape complexity rather
-than SM-relative deviations. Different observables can justify different
-complexities under the same MDL criterion.
+than SM-relative deviations. For continuous scale-like spectra we use log
+basis u = log(x/x0); for bounded continuous spectra we use linear basis
+u = x - x0. Different observables can justify different complexities under
+the same MDL criterion.
 
 Note: for discrete/ordinal observables (e.g., jet counts), alternative bases
 may be more natural; we treat that as a follow-up sensitivity study.
@@ -33,6 +35,7 @@ from numpy.linalg import inv
 HEPDATA_RECORD = "137886"  # ATLAS 13 TeV H→γγ differential XS
 OBSERVABLES = [
     ("pT_yy", "pT_yy_corr", "log"),
+    ("yAbs_yy", "yAbs_yy_corr", "linear"),
     ("N_j_30", "N_j_30_corr", "log"),
     ("N_j_30", "N_j_30_corr", "ordinal"),
 ]
@@ -138,12 +141,14 @@ def extract_binned_values(table):
     bin_edges = []
     bin_centers = []
 
+    is_categorical = False
     for row in table["values"]:
         x_entry = row["x"][0]
         bin_centers.append(_parse_bin_center(x_entry))
         if "low" in x_entry and "high" in x_entry:
             bin_edges.append((float(x_entry["low"]), float(x_entry["high"])))
         else:
+            is_categorical = True
             bin_edges.append(_parse_bin_edges(x_entry.get("value")))
         cell = row["y"][0]
         ys_data.append(float(cell["value"]))
@@ -154,6 +159,7 @@ def extract_binned_values(table):
         np.array(ys_data),
         np.array(sigmas),
         bin_edges,
+        is_categorical,
     )
 
 
@@ -195,6 +201,8 @@ def _basis(x, basis):
     x0 = np.mean(x)
     if basis == "log":
         return np.log(x / x0)
+    if basis == "linear":
+        return x - x0
     if basis == "ordinal":
         return x - x0
     raise ValueError(f"Unknown basis: {basis}")
@@ -248,10 +256,13 @@ def run_one(table_name, corr_table_name, basis):
     xs_table = fetch_table(HEPDATA_RECORD, table_name)
     corr_table = fetch_table(HEPDATA_RECORD, corr_table_name)
 
-    x, y, sigma, bin_edges = extract_binned_values(xs_table)
-    if np.any(x <= 0):
-        # For categorical/bin-count observables, use ordinal indices.
+    x, y, sigma, bin_edges, is_categorical = extract_binned_values(xs_table)
+    if basis == "ordinal" or is_categorical:
         x = np.arange(1, len(x) + 1, dtype=float)
+    elif basis == "log" and np.any(x <= 0):
+        raise RuntimeError(
+            f"{table_name} has non-positive x for log basis; use linear/ordinal."
+        )
     corr = extract_correlation_matrix(corr_table, bin_edges)
     cov = np.outer(sigma, sigma) * corr
     cov_inv = inv(cov)

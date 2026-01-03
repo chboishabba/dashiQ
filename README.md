@@ -758,6 +758,8 @@ The accurate wording is:
 > **3. Programmatic Test (Diagonal-Covariance Case)**
 > A real MDL-based model selection test was run on ATLAS 13 TeV H→γγ differential pT(H) data using published bin values and uncertainties, with diagonal covariance due to lack of an explicit correlation matrix. The data justify exactly one shape deformation and strongly reject higher-order structure.
 
+Note: `13tev.py` is a frozen reference script for the ATLAS 13 TeV analysis. Do not modify it; create a new file if you need to experiment.
+
 That is 100% correct.
 
 ---
@@ -809,8 +811,77 @@ If you want, next we can:
 
 Just tell me how you’d like to proceed.
 
-<<<<<<< HEAD
-=======
+---
+
+## Effective dimensionality scan (pseudo-data harness)
+
+Ran the dimensional flow detectability scan with:
+`python pseudo_data_harness.py --inject dimension --scan --dim-b 1.0 --dim-c 0.0`
+and
+`python pseudo_data_harness.py --inject dimension --scan --dim-b 1.0 --dim-c 1.0`
+
+Settings (baseline): `ref=powerlaw_exp`, `trials=200`, `eps in [0.0, 0.6] step 0.1`.
+
+Detection thresholds (eps50) under real covariance:
+
+observable | basis   | eps50 fixed dim (B) | eps50 running dim (C) | note
+--------- | -------- | ------------------- | --------------------- | ----
+pT_yy     | log      | 0.10                | 0.10                  | scaling is detectable; flow is not distinguished
+yAbs_yy   | linear   | None                | None                  | no dimension detection in this scan range
+N_j_30    | ordinal  | None                | None                  | ordinal observable does not resolve dimension here
+
+Interpretation: only pT_yy (log) is sensitive to a scaling exponent in this setup, and it
+does not separate fixed from running dimension at these strengths.
+
+Context reference: effective dimensionality test definition in `CONTEXT.md:3615`.
+
+Extended scans: `eps in [0.0, 1.2] step 0.1`, `trials=1000`.
+
+Raw projection, fixed dimension (dim-c=0.0):
+observable | basis   | eps50 | eps90 | note
+--------- | -------- | ----- | ----- | ----
+pT_yy     | log      | 0.10  | 0.10  | sharp threshold, saturates
+yAbs_yy   | linear   | None  | None  | no dimension detection in this scan range
+N_j_30    | ordinal  | 1.10  | None  | detection only at large eps
+
+Raw projection, running dimension (dim-c=1.0):
+observable | basis   | eps50 | eps90 | note
+--------- | -------- | ----- | ----- | ----
+pT_yy     | log      | 0.10  | 0.10  | no separation vs fixed dimension
+yAbs_yy   | linear   | None  | None  | no dimension detection in this scan range
+N_j_30    | ordinal  | 1.10  | None  | detection only at large eps
+
+Cumulative projection, fixed dimension (dim-c=0.0):
+observable | basis   | eps50 | eps90 | note
+--------- | -------- | ----- | ----- | ----
+pT_yy     | log      | 0.80  | 1.20  | non-monotonic detection across eps
+yAbs_yy   | linear   | None  | None  | no dimension detection in this scan range
+N_j_30    | ordinal  | 1.20  | None  | detection only at large eps
+
+Cumulative projection, running dimension (dim-c=1.0):
+observable | basis   | eps50 | eps90 | note
+--------- | -------- | ----- | ----- | ----
+pT_yy     | log      | 0.10  | 0.10  | no separation vs fixed dimension
+yAbs_yy   | linear   | None  | None  | no dimension detection in this scan range
+N_j_30    | ordinal  | 1.10  | None  | detection only at large eps
+
+If scans are slow, set `--workers N` to parallelize epsilon points.
+
+Interpretation: across raw and cumulative projections, only pT_yy (log) robustly
+preserves a single scaling exponent; scale-dependent dimension is not resolved
+within these projections up to eps=1.2.
+
+---
+
+## Cumulative / diffusion-like projection (harness mode)
+
+To probe diffusion-like observables, enable cumulative projection in the harness:
+`python pseudo_data_harness.py --projection cumulative --inject dimension --scan ...`
+
+This replaces y(x) with a cumulative tail integral Y(x) = ∫_x^∞ y(x') dx', which
+is closer to diffusion / random-walk diagnostics (see `CONTEXT.md:4121` and
+`CONTEXT.md:4140`). Use the same epsilon scan to test whether dimension-running
+appears only after this projection.
 
 2. What is genuinely new here (this is subtle but important)
 
@@ -906,4 +977,3 @@ MDL penalties for nuisance parameters,
 marginalization vs explicit encoding cost.
 
 This is genuinely novel, but also the heaviest lift.
->>>>>>> ad22ff4 (meow)
