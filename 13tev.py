@@ -7,9 +7,8 @@ from numpy.linalg import inv
 # ----------------------------
 # CONFIG
 # ----------------------------
-HEPDATA_RECORD = "ins2073877"  # CMS 13.6 TeV H→γγ differential XS
-OBSERVABLE_TABLE = 1          # pT(H) differential cross section table
-CORR_TABLE = 2                # correlation matrix table
+HEPDATA_RECORD = "ins1674946"  # ATLAS 13 TeV H→γγ combined differential XS
+TABLE_NAME = "Table 1"         # pT(H) differential cross section table
 
 MDL_LAMBDA = 1.0  # strength of MDL penalty
 
@@ -17,46 +16,82 @@ MDL_LAMBDA = 1.0  # strength of MDL penalty
 # ----------------------------
 # HEPData helpers
 # ----------------------------
-def fetch_table(record, table_id):
+def fetch_table(record, table_name):
     url = f"https://www.hepdata.net/record/{record}?format=json"
     data = _get_json(url, context="record")
-    table = data["tables"][table_id]
-    table_url = "https://www.hepdata.net" + table["location"]
-    table_data = _get_json(table_url + "?format=json", context="table")
-    return table_data
+    tables = data.get("tables") or data.get("data_tables") or []
+    for table in tables:
+        name = table.get("title") or table.get("name")
+        if name == table_name:
+            data_block = table.get("data", {})
+            if isinstance(data_block, dict) and "json" in data_block:
+                return _get_json(data_block["json"], context="table")
+            if "location" in table:
+                table_url = "https://www.hepdata.net" + table["location"]
+                return _get_json(table_url + "?format=json", context="table")
+            break
+    raise RuntimeError(f"Table {table_name!r} not found for record {record}")
 
 
-def extract_binned_values(table):
+def _parse_bin_center(x_entry):
+    if "low" in x_entry and "high" in x_entry:
+        return 0.5 * (x_entry["low"] + x_entry["high"])
+    if "value" in x_entry:
+        val = x_entry["value"]
+        if isinstance(val, str) and "-" in val:
+            parts = [p.strip() for p in val.split("-")]
+            if len(parts) == 2:
+                return 0.5 * (float(parts[0]) + float(parts[1]))
+        return float(val)
+    raise RuntimeError(f"Unrecognized bin format: {x_entry}")
+
+
+def _combine_errors(errors):
+    if not errors:
+        return 0.0
+    var = 0.0
+    for err in errors:
+        if "asymerror" in err:
+            minus = float(err["asymerror"]["minus"])
+            plus = float(err["asymerror"]["plus"])
+            sym = 0.5 * (abs(minus) + abs(plus))
+        else:
+            sym = float(err.get("symerror", 0.0))
+        var += sym * sym
+    return np.sqrt(var)
+
+
+def extract_binned_values(table, data_group=0, ref_group=1):
     """
     Extract bin centers and values.
     Assumes 1D differential XS.
     """
     xs = []
+    ys_data = []
+    ys_ref = []
+    sigmas = []
     bin_centers = []
 
     for row in table["values"]:
-        low = row["x"][0]["low"]
-        high = row["x"][0]["high"]
-        val = row["y"][0]["value"]
+        bin_centers.append(_parse_bin_center(row["x"][0]))
+        y_group = {cell.get("group", 0): cell for cell in row["y"]}
+        data_cell = y_group.get(data_group)
+        ref_cell = y_group.get(ref_group)
+        if data_cell is None:
+            raise RuntimeError(f"Missing data group {data_group} in row {row}")
+        ys_data.append(float(data_cell["value"]))
+        sigmas.append(_combine_errors(data_cell.get("errors", [])))
+        if ref_cell is not None:
+            ys_ref.append(float(ref_cell["value"]))
+        else:
+            ys_ref.append(float(data_cell["value"]))
 
-        bin_centers.append(0.5 * (low + high))
-        xs.append(val)
-
-    return np.array(bin_centers), np.array(xs)
-
-
-def extract_correlation_matrix(table):
-    """
-    Extract correlation matrix from HEPData table.
-    """
-    n = len(table["values"])
-    corr = np.zeros((n, n))
-
-    for i, row in enumerate(table["values"]):
-        for j, cell in enumerate(row["y"]):
-            corr[i, j] = cell["value"]
-
-    return corr
+    return (
+        np.array(bin_centers),
+        np.array(ys_data),
+        np.array(ys_ref),
+        np.array(sigmas),
+    )
 
 
 def _get_json(url, context="resource"):
@@ -126,19 +161,13 @@ def mdl_score(chi2_val, k, n):
 def main():
     print("Downloading HEPData tables...")
 
-    xs_table = fetch_table(HEPDATA_RECORD, OBSERVABLE_TABLE)
-    corr_table = fetch_table(HEPDATA_RECORD, CORR_TABLE)
+    xs_table = fetch_table(HEPDATA_RECORD, TABLE_NAME)
 
-    x, y = extract_binned_values(xs_table)
-    corr = extract_correlation_matrix(corr_table)
+    x, y, y_sm, sigma = extract_binned_values(xs_table)
 
-    # crude uncertainty estimate from diagonal if not provided
-    sigma = 0.1 * y  # conservative 10%
-    cov = np.outer(sigma, sigma) * corr
+    # No correlation matrix provided; assume diagonal covariance.
+    cov = np.diag(sigma ** 2)
     cov_inv = inv(cov)
-
-    # SM reference = measured central values (null deformation test)
-    y_sm = y.copy()
 
     n = len(y)
 
