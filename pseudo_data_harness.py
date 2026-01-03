@@ -7,6 +7,7 @@ It does not modify the core analysis code; it is a standalone validation tool.
 """
 
 import argparse
+import functools
 import math
 import multiprocessing as mp
 import requests
@@ -190,6 +191,18 @@ def model_C(params, x, y_ref, basis):
     return np.exp(log_a + b * u + c * u ** 2) * y_ref
 
 
+def model_B2(params, x, y_ref, basis, xb):
+    log_a, b1, b2 = params
+    u = _basis(x, basis)
+    x0 = np.mean(x)
+    if basis == "log":
+        ub = np.log(xb / x0)
+    else:
+        ub = xb - x0
+    u_piece = np.where(u <= ub, b1 * u, b2 * u + (b1 - b2) * ub)
+    return np.exp(log_a + u_piece) * y_ref
+
+
 def chi2(params, model, x, y, y_ref, cov_inv, basis):
     diff = y - model(params, x, y_ref, basis)
     return diff.T @ cov_inv @ diff
@@ -295,7 +308,18 @@ def make_reference_shape(x, kind):
     raise ValueError(f"Unknown reference kind: {kind}")
 
 
-def inject_deformation(x, y_ref, basis, kind, epsilon, dim_b=1.0, dim_c=0.0):
+def inject_deformation(
+    x,
+    y_ref,
+    basis,
+    kind,
+    epsilon,
+    dim_b=1.0,
+    dim_c=0.0,
+    two_b1=1.0,
+    two_b2=0.0,
+    two_xb=None,
+):
     if kind == "none":
         return y_ref
     u = _basis(x, basis)
@@ -308,6 +332,15 @@ def inject_deformation(x, y_ref, basis, kind, epsilon, dim_b=1.0, dim_c=0.0):
         return y_ref * np.exp(epsilon * lines)
     if kind == "dimension":
         return y_ref * np.exp(epsilon * (dim_b * u + dim_c * (u ** 2)))
+    if kind == "two_regime":
+        x0 = np.mean(x)
+        xb = two_xb if two_xb is not None else float(np.median(x))
+        if basis == "log":
+            ub = np.log(xb / x0)
+        else:
+            ub = xb - x0
+        u_piece = np.where(u <= ub, two_b1 * u, two_b2 * u + (two_b1 - two_b2) * ub)
+        return y_ref * np.exp(epsilon * u_piece)
     raise ValueError(f"Unknown injection kind: {kind}")
 
 
@@ -320,6 +353,13 @@ def cumulative_projection_matrix(bin_edges, n_bins):
     for i in range(n_bins):
         proj[i, i:] = widths[i:]
     return proj
+
+
+def valuation_bins(n_bins, depth, base):
+    if depth < 0:
+        return np.zeros(n_bins, dtype=int)
+    modulus = base ** depth
+    return np.arange(n_bins, dtype=int) % modulus
 
 
 def sample_pseudo(y_true, cov, rng):
@@ -343,7 +383,12 @@ def run_observable(
     spectral_cfg=None,
     dim_b=1.0,
     dim_c=0.0,
+    two_b1=1.0,
+    two_b2=0.0,
+    two_xb=None,
     projection="raw",
+    valuation_depth=None,
+    valuation_base=3,
 ):
     xs_table = fetch_table(HEPDATA_RECORD, table_name)
     corr_table = fetch_table(HEPDATA_RECORD, corr_table_name)
@@ -360,17 +405,46 @@ def run_observable(
     cov = np.outer(sigma, sigma) * corr
 
     y_ref = make_reference_shape(x, ref_kind)
-    y_true = inject_deformation(x, y_ref, basis, inject, epsilon, dim_b=dim_b, dim_c=dim_c)
+    y_true = inject_deformation(
+        x,
+        y_ref,
+        basis,
+        inject,
+        epsilon,
+        dim_b=dim_b,
+        dim_c=dim_c,
+        two_b1=two_b1,
+        two_b2=two_b2,
+        two_xb=two_xb,
+    )
 
     if projection == "cumulative":
         proj = cumulative_projection_matrix(bin_edges, len(y_true))
         y_ref = proj @ y_ref
         y_true = proj @ y_true
         cov = proj @ cov @ proj.T
+    elif projection == "valuation":
+        depth = 0 if valuation_depth is None else valuation_depth
+        groups = valuation_bins(len(y_true), depth, valuation_base)
+        n_groups = int(np.max(groups)) + 1
+        proj = np.zeros((n_groups, len(y_true)), dtype=float)
+        for g in range(n_groups):
+            mask = groups == g
+            if not np.any(mask):
+                continue
+            proj[g, mask] = 1.0 / np.sum(mask)
+        y_ref = proj @ y_ref
+        y_true = proj @ y_true
+        x = proj @ x
+        cov = proj @ cov @ proj.T
 
     cov_inv = np.linalg.inv(cov)
 
-    counts = {"A": 0, "B": 0, "C": 0}
+    counts = {"A": 0, "B": 0}
+    if inject == "two_regime":
+        counts["B2"] = 0
+    else:
+        counts["C"] = 0
     spectral = None
     if spectral_cfg:
         if spectral_cfg.get("debug"):
@@ -396,12 +470,18 @@ def run_observable(
         y = sample_pseudo(y_true, cov, rng)
         chi2_A, _ = fit_model(model_A, 1, x, y, y_ref, cov_inv, basis)
         chi2_B, _ = fit_model(model_B, 2, x, y, y_ref, cov_inv, basis)
-        chi2_C, _ = fit_model(model_C, 3, x, y, y_ref, cov_inv, basis)
-
         mdl_A = mdl_score(chi2_A, 1, len(y))
         mdl_B = mdl_score(chi2_B, 2, len(y))
-        mdl_C = mdl_score(chi2_C, 3, len(y))
-        best = min([("A", mdl_A), ("B", mdl_B), ("C", mdl_C)], key=lambda v: v[1])[0]
+        if inject == "two_regime":
+            xb = two_xb if two_xb is not None else float(np.median(x))
+            model_b2 = functools.partial(model_B2, xb=xb)
+            chi2_B2, _ = fit_model(model_b2, 3, x, y, y_ref, cov_inv, basis)
+            mdl_B2 = mdl_score(chi2_B2, 3, len(y))
+            best = min([("A", mdl_A), ("B", mdl_B), ("B2", mdl_B2)], key=lambda v: v[1])[0]
+        else:
+            chi2_C, _ = fit_model(model_C, 3, x, y, y_ref, cov_inv, basis)
+            mdl_C = mdl_score(chi2_C, 3, len(y))
+            best = min([("A", mdl_A), ("B", mdl_B), ("C", mdl_C)], key=lambda v: v[1])[0]
         counts[best] += 1
         if spectral is not None:
             d_sample, peaks_sample = spectral_discreteness(
@@ -428,6 +508,8 @@ def detection_rate(counts, inject, dim_c=0.0):
         return (counts["B"] + counts["C"]) / total
     if inject == "dimension":
         return (counts["C"] if dim_c != 0.0 else counts["B"]) / total
+    if inject == "two_regime":
+        return counts["B2"] / total
     return 0.0
 
 
@@ -442,7 +524,12 @@ def scan_epsilons(
     rng,
     dim_b=1.0,
     dim_c=0.0,
+    two_b1=1.0,
+    two_b2=0.0,
+    two_xb=None,
     projection="raw",
+    valuation_depth=None,
+    valuation_base=3,
 ):
     rows = []
     for eps in epsilons:
@@ -457,7 +544,12 @@ def scan_epsilons(
             rng,
             dim_b=dim_b,
             dim_c=dim_c,
+            two_b1=two_b1,
+            two_b2=two_b2,
+            two_xb=two_xb,
             projection=projection,
+            valuation_depth=valuation_depth,
+            valuation_base=valuation_base,
         )
         rate = detection_rate(counts, inject, dim_c=dim_c)
         rows.append((eps, rate, counts))
@@ -476,7 +568,12 @@ def scan_point(params):
         seed,
         dim_b,
         dim_c,
+        two_b1,
+        two_b2,
+        two_xb,
         projection,
+        valuation_depth,
+        valuation_base,
     ) = params
     rng = np.random.default_rng(seed)
     counts, _ = run_observable(
@@ -490,7 +587,12 @@ def scan_point(params):
         rng,
         dim_b=dim_b,
         dim_c=dim_c,
+        two_b1=two_b1,
+        two_b2=two_b2,
+        two_xb=two_xb,
         projection=projection,
+        valuation_depth=valuation_depth,
+        valuation_base=valuation_base,
     )
     rate = detection_rate(counts, inject, dim_c=dim_c)
     return eps, rate, counts
@@ -501,11 +603,14 @@ def parse_args():
     p.add_argument(
         "--inject",
         default="none",
-        choices=["none", "tilt", "curvature", "lines", "dimension"],
+        choices=["none", "tilt", "curvature", "lines", "dimension", "two_regime"],
     )
     p.add_argument("--epsilon", type=float, default=0.2, help="Injection strength")
     p.add_argument("--dim-b", type=float, default=1.0, help="Dimension injection: b coefficient")
     p.add_argument("--dim-c", type=float, default=0.0, help="Dimension injection: c coefficient")
+    p.add_argument("--b1", type=float, default=1.0, help="Two-regime injection: low-scale slope")
+    p.add_argument("--b2", type=float, default=0.0, help="Two-regime injection: high-scale slope")
+    p.add_argument("--xb", type=float, default=None, help="Two-regime injection: breakpoint x value")
     p.add_argument("--ref", default="powerlaw_exp", choices=["flat", "powerlaw_exp", "gaussian_lines"])
     p.add_argument("--trials", type=int, default=200)
     p.add_argument("--seed", type=int, default=7)
@@ -533,8 +638,10 @@ def parse_args():
     p.add_argument("--eps-min", type=float, default=0.0)
     p.add_argument("--eps-max", type=float, default=0.6)
     p.add_argument("--eps-steps", type=int, default=7)
-    p.add_argument("--projection", choices=["raw", "cumulative"], default="raw")
+    p.add_argument("--projection", choices=["raw", "cumulative", "valuation"], default="raw")
     p.add_argument("--workers", type=int, default=1, help="Parallel workers for epsilon scans")
+    p.add_argument("--valuation-depth", type=int, default=None, help="Valuation projection depth")
+    p.add_argument("--valuation-base", type=int, default=3, help="Valuation projection base")
     p.add_argument("--only", help="Run a single observable (e.g., pT_yy)")
     return p.parse_args()
 
@@ -576,7 +683,12 @@ def main():
                         seed,
                         args.dim_b,
                         args.dim_c,
+                        args.b1,
+                        args.b2,
+                        args.xb,
                         args.projection,
+                        args.valuation_depth,
+                        args.valuation_base,
                     )
                     for eps, seed in zip(epsilons, seeds)
                 ]
@@ -595,7 +707,12 @@ def main():
                     rng,
                     dim_b=args.dim_b,
                     dim_c=args.dim_c,
+                    two_b1=args.b1,
+                    two_b2=args.b2,
+                    two_xb=args.xb,
                     projection=args.projection,
+                    valuation_depth=args.valuation_depth,
+                    valuation_base=args.valuation_base,
                 )
             print(f"{table_name:<10} basis={basis:<8} scan eps[{args.eps_min},{args.eps_max}]")
             for eps, rate, _ in rows:
@@ -616,14 +733,25 @@ def main():
                 spectral_cfg=spectral_cfg,
                 dim_b=args.dim_b,
                 dim_c=args.dim_c,
+                two_b1=args.b1,
+                two_b2=args.b2,
+                two_xb=args.xb,
                 projection=args.projection,
+                valuation_depth=args.valuation_depth,
+                valuation_base=args.valuation_base,
             )
             total = sum(counts.values())
             rates = {k: v / total for k, v in counts.items()}
-            print(
-                f"{table_name:<10} basis={basis:<8} "
-                f"A={rates['A']:.2f} B={rates['B']:.2f} C={rates['C']:.2f}"
-            )
+            if args.inject == "two_regime":
+                print(
+                    f"{table_name:<10} basis={basis:<8} "
+                    f"A={rates['A']:.2f} B={rates['B']:.2f} B2={rates['B2']:.2f}"
+                )
+            else:
+                print(
+                    f"{table_name:<10} basis={basis:<8} "
+                    f"A={rates['A']:.2f} B={rates['B']:.2f} C={rates['C']:.2f}"
+                )
             if spectral is not None and spectral["samples"]:
                 d_true, peaks_true = spectral["true"]
                 d_vals = np.array([v[0] for v in spectral["samples"]], dtype=float)

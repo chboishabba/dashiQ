@@ -883,6 +883,59 @@ is closer to diffusion / random-walk diagnostics (see `CONTEXT.md:4121` and
 `CONTEXT.md:4140`). Use the same epsilon scan to test whether dimension-running
 appears only after this projection.
 
+---
+
+## Test III: two-regime (local-in-scale) injection
+
+Force a piecewise log-slope to test whether local-in-scale structure survives
+projection beyond a single global exponent.
+
+Example scan:
+`python pseudo_data_harness.py --inject two_regime --b1 1.0 --b2 0.0 --scan --eps-max 1.2 --eps-steps 13 --trials 1000 --workers 4`
+
+This compares Model A vs Model B (single exponent) vs Model B2 (two-regime with
+fixed breakpoint at `--xb`, defaulting to the median x value).
+
+Results (two-regime, b1=1.0, b2=0.0, raw projection):
+observable | basis   | eps50 (B2) | eps90 (B2) | note
+--------- | -------- | ---------- | ---------- | ----
+pT_yy     | log      | 0.10       | 0.30       | non-monotonic detectability across eps
+yAbs_yy   | linear   | None       | None       | no two-regime detection in this scan range
+N_j_30    | ordinal  | None       | None       | no two-regime detection in this scan range
+
+Interpretation: local-in-scale structure is recoverable for pT_yy, but detection
+is non-monotonic at intermediate eps, consistent with MDL preferring simpler
+models until the two-regime contrast dominates.
+
+---
+
+## P-adic toy: digit-resolution aliasing
+
+A minimal demonstration of non-monotonic detectability is to observe only a
+single base-p digit of a scaled epsilon:
+
+`d = (round(epsilon * S) + eta) mod p`
+
+and declare "detectable" if `d != 0`. As epsilon grows, the observed digit cycles
+through residues, so detectability can dip even as the true signal grows. This
+is a toy analogue of valuation truncation under projection + MDL penalties.
+
+Run the toy and write a CSV/plot:
+`python p_adic_toy.py --p 3 --scale 100 --trials 1000 --noise 1 --plot`
+
+Valuation-depth scan (projection mode) in the main harness:
+`python pseudo_data_harness.py --projection valuation --valuation-base 3 --valuation-depth 1 --inject two_regime --b1 1.0 --b2 0.0 --scan --eps-max 1.2 --eps-steps 13 --trials 1000 --workers 4`
+
+Increase `--valuation-depth` to add digits; depth=0 collapses all bins into a
+single block, while higher depth exposes finer structure.
+
+Valuation projection, depth=2 (two-regime, b1=1.0, b2=0.0):
+observable | basis   | eps50 (B2) | eps90 (B2) | note
+--------- | -------- | ---------- | ---------- | ----
+pT_yy     | log      | 0.10       | 0.10       | monotone detectability at this depth
+yAbs_yy   | linear   | None       | None       | no two-regime detection in this scan range
+N_j_30    | ordinal  | None       | None       | no two-regime detection in this scan range
+
 2. What is genuinely new here (this is subtle but important)
 
 Even though the physics conclusion is confirmatory, there are two genuinely new scholarly contributions you’ve already made:
@@ -977,3 +1030,30 @@ MDL penalties for nuisance parameters,
 marginalization vs explicit encoding cost.
 
 This is genuinely novel, but also the heaviest lift.
+
+---
+
+## Scaling beyond physics (short)
+
+The same pattern shows up across domains: hierarchical (ultrametric) structure
+projects into continuous observables and is then selected under a simplicity
+bias, which can produce non-monotonic detectability (dips, plateaus, sudden
+recoveries). This links collider spectra, diffusion-style geometry probes, and
+learning dynamics (e.g., grokking) under a shared “projection + valuation”
+mechanism, without claiming any domain-specific ontology.
+
+---
+
+## HL-LHC prediction program (short)
+
+Goal: translate structure-class detectability into permissible vs discoverable
+regions for a concrete target under current vs HL-LHC channels (see
+`CONTEXT.md:8001` and `CONTEXT.md:8311`).
+
+Minimal workflow:
+- pick one target (recommended: di-Higgs/self-coupling; see `CONTEXT.md:8034`)
+- map to structure class and observation channel changes
+- compute permissible/discoverable/aliased regions (see `CONTEXT.md:8341`)
+
+Selected target: di-Higgs / Higgs self-coupling (κλ). See `CONTEXT.md:8034`,
+`CONTEXT.md:8106`, and `CONTEXT.md:8199` for the framing and baseline expectations.
