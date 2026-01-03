@@ -95,6 +95,8 @@ def show_tables(record):
         ).lower()
         if any(k in text for k in ["corr", "correlation", "cov", "covariance"]):
             print("  -> candidate correlation/covariance table")
+        if any(k in text for k in ["theory", "prediction", "nnlo", "sm "]):
+            print("  -> candidate theory/prediction table")
 
     # Scan record-level resources for covariance hints.
     resources = data.get("record", {}).get("files") or data.get("record", {}).get("resources")
@@ -185,8 +187,9 @@ def main(argv):
         return 0
 
     # Default action: run a targeted search without requiring args.
-    # Default: scan tables/resources for correlation/covariance hints.
-    default_record = "83202"
+    # Default: search for ATLAS 139 fb-1 Higgs differential records.
+    # Default: scan tables for correlation/covariance and theory/prediction hints.
+    default_record = "137886"
     show_tables(default_record)
     return 0
 

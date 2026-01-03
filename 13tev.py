@@ -7,8 +7,9 @@ from numpy.linalg import inv
 # ----------------------------
 # CONFIG
 # ----------------------------
-HEPDATA_RECORD = "ins1674946"  # ATLAS 13 TeV H→γγ combined differential XS
-TABLE_NAME = "Table 1"         # pT(H) differential cross section table
+HEPDATA_RECORD = "137886"  # ATLAS 13 TeV H→γγ differential XS
+TABLE_NAME = "pT_yy"        # pT(γγ) differential cross section table
+CORR_TABLE_NAME = "pT_yy_corr"
 
 MDL_LAMBDA = 1.0  # strength of MDL penalty
 
@@ -35,7 +36,7 @@ def fetch_table(record, table_name):
 
 def _parse_bin_center(x_entry):
     if "low" in x_entry and "high" in x_entry:
-        return 0.5 * (x_entry["low"] + x_entry["high"])
+        return 0.5 * (float(x_entry["low"]) + float(x_entry["high"]))
     if "value" in x_entry:
         val = x_entry["value"]
         if isinstance(val, str) and "-" in val:
@@ -44,6 +45,23 @@ def _parse_bin_center(x_entry):
                 return 0.5 * (float(parts[0]) + float(parts[1]))
         return float(val)
     raise RuntimeError(f"Unrecognized bin format: {x_entry}")
+
+
+def _parse_bin_edges(value):
+    if isinstance(value, (int, float)):
+        val = float(value)
+        return val, val
+    text = str(value).replace("GeV", "").strip()
+    if text.startswith("(") and ")" in text:
+        text = text.strip("()")
+        parts = [p.strip() for p in text.split(",")]
+        if len(parts) == 2:
+            return float(parts[0]), float(parts[1])
+    if "-" in text:
+        parts = [p.strip() for p in text.split("-")]
+        if len(parts) == 2:
+            return float(parts[0]), float(parts[1])
+    raise RuntimeError(f"Unrecognized bin edge format: {value}")
 
 
 def _combine_errors(errors):
@@ -61,37 +79,47 @@ def _combine_errors(errors):
     return np.sqrt(var)
 
 
-def extract_binned_values(table, data_group=0, ref_group=1):
+def extract_binned_values(table):
     """
     Extract bin centers and values.
     Assumes 1D differential XS.
     """
     xs = []
     ys_data = []
-    ys_ref = []
     sigmas = []
+    bin_edges = []
     bin_centers = []
 
     for row in table["values"]:
-        bin_centers.append(_parse_bin_center(row["x"][0]))
-        y_group = {cell.get("group", 0): cell for cell in row["y"]}
-        data_cell = y_group.get(data_group)
-        ref_cell = y_group.get(ref_group)
-        if data_cell is None:
-            raise RuntimeError(f"Missing data group {data_group} in row {row}")
-        ys_data.append(float(data_cell["value"]))
-        sigmas.append(_combine_errors(data_cell.get("errors", [])))
-        if ref_cell is not None:
-            ys_ref.append(float(ref_cell["value"]))
+        x_entry = row["x"][0]
+        bin_centers.append(_parse_bin_center(x_entry))
+        if "low" in x_entry and "high" in x_entry:
+            bin_edges.append((float(x_entry["low"]), float(x_entry["high"])))
         else:
-            ys_ref.append(float(data_cell["value"]))
+            bin_edges.append(_parse_bin_edges(x_entry.get("value")))
+        cell = row["y"][0]
+        ys_data.append(float(cell["value"]))
+        sigmas.append(_combine_errors(cell.get("errors", [])))
 
     return (
         np.array(bin_centers),
         np.array(ys_data),
-        np.array(ys_ref),
         np.array(sigmas),
+        bin_edges,
     )
+
+
+def extract_correlation_matrix(table, bin_edges):
+    n = len(bin_edges)
+    corr = np.eye(n)
+    index = {edge: i for i, edge in enumerate(bin_edges)}
+    for row in table["values"]:
+        x0 = _parse_bin_edges(row["x"][0]["value"])
+        x1 = _parse_bin_edges(row["x"][1]["value"])
+        i = index[x0]
+        j = index[x1]
+        corr[i, j] = float(row["y"][0]["value"])
+    return corr
 
 
 def _get_json(url, context="resource"):
@@ -115,21 +143,26 @@ def _get_json(url, context="resource"):
 # ----------------------------
 # Models
 # ----------------------------
-def model_A(params, x, y_sm):
-    a = params[0]
-    return a * y_sm
-
-
-def model_B(params, x, y_sm):
-    a, b = params
+def _log_basis(x):
     x0 = np.mean(x)
-    return a * y_sm * (1 + b * (x - x0))
+    return np.log(x / x0)
 
 
-def model_C(params, x, y_sm):
-    a, b, c = params
-    x0 = np.mean(x)
-    return a * y_sm * (1 + b * (x - x0) + c * (x - x0) ** 2)
+def model_A(params, x, y_ref):
+    log_a = params[0]
+    return np.exp(log_a) * y_ref
+
+
+def model_B(params, x, y_ref):
+    log_a, b = params
+    u = _log_basis(x)
+    return np.exp(log_a + b * u) * y_ref
+
+
+def model_C(params, x, y_ref):
+    log_a, b, c = params
+    u = _log_basis(x)
+    return np.exp(log_a + b * u + c * u ** 2) * y_ref
 
 
 # ----------------------------
@@ -141,7 +174,8 @@ def chi2(params, model, x, y, y_sm, cov_inv):
 
 
 def fit_model(model, n_params, x, y, y_sm, cov_inv):
-    init = np.ones(n_params)
+    init = np.zeros(n_params)
+    init[0] = np.log(np.mean(y))
     res = minimize(
         chi2,
         init,
@@ -162,12 +196,15 @@ def main():
     print("Downloading HEPData tables...")
 
     xs_table = fetch_table(HEPDATA_RECORD, TABLE_NAME)
+    corr_table = fetch_table(HEPDATA_RECORD, CORR_TABLE_NAME)
 
-    x, y, y_sm, sigma = extract_binned_values(xs_table)
-
-    # No correlation matrix provided; assume diagonal covariance.
-    cov = np.diag(sigma ** 2)
+    x, y, sigma, bin_edges = extract_binned_values(xs_table)
+    corr = extract_correlation_matrix(corr_table, bin_edges)
+    cov = np.outer(sigma, sigma) * corr
     cov_inv = inv(cov)
+
+    # Use a flat baseline; models represent increasing shape complexity.
+    y_sm = np.ones_like(y)
 
     n = len(y)
 
