@@ -1,6 +1,8 @@
 
 # dashiQ
 hella I guess?
+See `PHYSICS_TARGETS.md` for the current list of physics-forward targets tied to
+the projection -> covariance -> MDL framework (sourced from `CONTEXT.md`).
 Got it — you want a **true end-to-end synthesis**, not just the Higgs chapter.
 Here is a **compressed but faithful map of the entire conversation**, from the very first ideas through to the LHC experiment, showing how everything connects.
 
@@ -1057,3 +1059,23 @@ Minimal workflow:
 
 Selected target: di-Higgs / Higgs self-coupling (κλ). See `CONTEXT.md:8034`,
 `CONTEXT.md:8106`, and `CONTEXT.md:8199` for the framing and baseline expectations.
+
+Di-Higgs mapping (prediction program):
+- Structure class: local-in-scale deformation with possible regime change in kinematic tails.
+- Channel changes: HL-LHC adds timing/tracking to reduce pileup mixing, enabling cleaner
+  multi-object correlations beyond single 1D spectra.
+- Observable set: start with 1D spectra (global scaling), then add multi-differential
+  correlations or topology-aware summaries to escape alias zones.
+- Prediction output: permissible (consistent with SM within channel), discoverable
+  (deviation detectable), and aliased (deviation present but collapsed to simpler fits).
+
+Computation outline (κλ):
+- Parameter: κλ with channel-specific observable predictions μ(κλ).
+- Channel models: current vs HL-LHC covariance Σ (stats scaling, systematics floors,
+  and reduced pileup mixing).
+- Region definitions (see `CONTEXT.md:8135` and `CONTEXT.md:8341`):
+  - permissible: Δχ²(κλ) below exclusion threshold.
+  - discoverable: Δχ²(κλ) above discovery threshold.
+  - aliased: Δχ²(κλ) large but model class selection collapses to a simpler fit.
+- Deliverable: κλ ranges for the three regions under each channel model, with a
+  note on how adding correlations/topology shifts aliased → discoverable.

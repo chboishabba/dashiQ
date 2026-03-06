@@ -191,6 +191,12 @@ def model_C(params, x, y_ref, basis):
     return np.exp(log_a + b * u + c * u ** 2) * y_ref
 
 
+def model_ANISO(params, x, y_ref, basis, group_sign):
+    log_a, b, delta = params
+    u = _basis(x, basis)
+    return np.exp(log_a + (b + delta * group_sign) * u) * y_ref
+
+
 def model_B2(params, x, y_ref, basis, xb):
     log_a, b1, b2 = params
     u = _basis(x, basis)
@@ -319,6 +325,9 @@ def inject_deformation(
     two_b1=1.0,
     two_b2=0.0,
     two_xb=None,
+    aniso_xb=None,
+    aniso_groups=2,
+    aniso_phase=0,
 ):
     if kind == "none":
         return y_ref
@@ -341,6 +350,13 @@ def inject_deformation(
             ub = xb - x0
         u_piece = np.where(u <= ub, two_b1 * u, two_b2 * u + (two_b1 - two_b2) * ub)
         return y_ref * np.exp(epsilon * u_piece)
+    if kind == "anisotropy":
+        xb = aniso_xb if aniso_xb is not None else float(np.median(x))
+        mask = x >= xb
+        groups = angular_group_labels(len(x), aniso_groups, aniso_phase)
+        direction = np.where(groups % 2 == 0, 1.0, -1.0)
+        u_piece = np.where(mask, u, 0.0)
+        return y_ref * np.exp(epsilon * direction * u_piece)
     raise ValueError(f"Unknown injection kind: {kind}")
 
 
@@ -352,6 +368,25 @@ def cumulative_projection_matrix(bin_edges, n_bins):
     proj = np.zeros((n_bins, n_bins), dtype=float)
     for i in range(n_bins):
         proj[i, i:] = widths[i:]
+    return proj
+
+
+def angular_group_labels(n_bins, groups, phase=0):
+    if groups < 2:
+        raise ValueError("angular groups must be >= 2")
+    return (np.arange(n_bins, dtype=int) + int(phase)) % int(groups)
+
+
+def angular_projection_matrix(n_bins, groups, phase=0):
+    if groups > n_bins:
+        raise ValueError("angular groups must be <= number of bins")
+    labels = angular_group_labels(n_bins, groups, phase)
+    proj = np.zeros((groups, n_bins), dtype=float)
+    for g in range(groups):
+        mask = labels == g
+        count = int(np.sum(mask))
+        if count > 0:
+            proj[g, mask] = 1.0 / float(count)
     return proj
 
 
@@ -387,6 +422,8 @@ def run_observable(
     two_b2=0.0,
     two_xb=None,
     projection="raw",
+    angular_groups=4,
+    angular_phase=0,
     valuation_depth=None,
     valuation_base=3,
 ):
@@ -416,12 +453,21 @@ def run_observable(
         two_b1=two_b1,
         two_b2=two_b2,
         two_xb=two_xb,
+        aniso_xb=two_xb,
+        aniso_groups=angular_groups,
+        aniso_phase=angular_phase,
     )
 
     if projection == "cumulative":
         proj = cumulative_projection_matrix(bin_edges, len(y_true))
         y_ref = proj @ y_ref
         y_true = proj @ y_true
+        cov = proj @ cov @ proj.T
+    elif projection == "angular":
+        proj = angular_projection_matrix(len(y_true), angular_groups, angular_phase)
+        y_ref = proj @ y_ref
+        y_true = proj @ y_true
+        x = proj @ x
         cov = proj @ cov @ proj.T
     elif projection == "valuation":
         depth = 0 if valuation_depth is None else valuation_depth
@@ -443,6 +489,8 @@ def run_observable(
     counts = {"A": 0, "B": 0}
     if inject == "two_regime":
         counts["B2"] = 0
+    elif inject == "anisotropy":
+        counts["ANISO"] = 0
     else:
         counts["C"] = 0
     spectral = None
@@ -478,6 +526,16 @@ def run_observable(
             chi2_B2, _ = fit_model(model_b2, 3, x, y, y_ref, cov_inv, basis)
             mdl_B2 = mdl_score(chi2_B2, 3, len(y))
             best = min([("A", mdl_A), ("B", mdl_B), ("B2", mdl_B2)], key=lambda v: v[1])[0]
+        elif inject == "anisotropy":
+            if projection == "angular":
+                group_labels = np.arange(len(y), dtype=int)
+            else:
+                group_labels = angular_group_labels(len(y), angular_groups, angular_phase)
+            group_sign = np.where(group_labels % 2 == 0, 1.0, -1.0)
+            model_aniso = functools.partial(model_ANISO, group_sign=group_sign)
+            chi2_aniso, _ = fit_model(model_aniso, 3, x, y, y_ref, cov_inv, basis)
+            mdl_aniso = mdl_score(chi2_aniso, 3, len(y))
+            best = min([("A", mdl_A), ("B", mdl_B), ("ANISO", mdl_aniso)], key=lambda v: v[1])[0]
         else:
             chi2_C, _ = fit_model(model_C, 3, x, y, y_ref, cov_inv, basis)
             mdl_C = mdl_score(chi2_C, 3, len(y))
@@ -510,6 +568,8 @@ def detection_rate(counts, inject, dim_c=0.0):
         return (counts["C"] if dim_c != 0.0 else counts["B"]) / total
     if inject == "two_regime":
         return counts["B2"] / total
+    if inject == "anisotropy":
+        return counts["ANISO"] / total
     return 0.0
 
 
@@ -528,6 +588,8 @@ def scan_epsilons(
     two_b2=0.0,
     two_xb=None,
     projection="raw",
+    angular_groups=4,
+    angular_phase=0,
     valuation_depth=None,
     valuation_base=3,
 ):
@@ -548,6 +610,8 @@ def scan_epsilons(
             two_b2=two_b2,
             two_xb=two_xb,
             projection=projection,
+            angular_groups=angular_groups,
+            angular_phase=angular_phase,
             valuation_depth=valuation_depth,
             valuation_base=valuation_base,
         )
@@ -572,6 +636,8 @@ def scan_point(params):
         two_b2,
         two_xb,
         projection,
+        angular_groups,
+        angular_phase,
         valuation_depth,
         valuation_base,
     ) = params
@@ -591,6 +657,8 @@ def scan_point(params):
         two_b2=two_b2,
         two_xb=two_xb,
         projection=projection,
+        angular_groups=angular_groups,
+        angular_phase=angular_phase,
         valuation_depth=valuation_depth,
         valuation_base=valuation_base,
     )
@@ -603,14 +671,19 @@ def parse_args():
     p.add_argument(
         "--inject",
         default="none",
-        choices=["none", "tilt", "curvature", "lines", "dimension", "two_regime"],
+        choices=["none", "tilt", "curvature", "lines", "dimension", "two_regime", "anisotropy"],
     )
     p.add_argument("--epsilon", type=float, default=0.2, help="Injection strength")
     p.add_argument("--dim-b", type=float, default=1.0, help="Dimension injection: b coefficient")
     p.add_argument("--dim-c", type=float, default=0.0, help="Dimension injection: c coefficient")
     p.add_argument("--b1", type=float, default=1.0, help="Two-regime injection: low-scale slope")
     p.add_argument("--b2", type=float, default=0.0, help="Two-regime injection: high-scale slope")
-    p.add_argument("--xb", type=float, default=None, help="Two-regime injection: breakpoint x value")
+    p.add_argument(
+        "--xb",
+        type=float,
+        default=None,
+        help="Two-regime or anisotropy injection: breakpoint x value",
+    )
     p.add_argument("--ref", default="powerlaw_exp", choices=["flat", "powerlaw_exp", "gaussian_lines"])
     p.add_argument("--trials", type=int, default=200)
     p.add_argument("--seed", type=int, default=7)
@@ -638,7 +711,21 @@ def parse_args():
     p.add_argument("--eps-min", type=float, default=0.0)
     p.add_argument("--eps-max", type=float, default=0.6)
     p.add_argument("--eps-steps", type=int, default=7)
-    p.add_argument("--projection", choices=["raw", "cumulative", "valuation"], default="raw")
+    p.add_argument(
+        "--projection", choices=["raw", "cumulative", "valuation", "angular"], default="raw"
+    )
+    p.add_argument(
+        "--angular-groups",
+        type=int,
+        default=4,
+        help="Angular projection: number of groups for bin remapping",
+    )
+    p.add_argument(
+        "--angular-phase",
+        type=int,
+        default=0,
+        help="Angular projection: phase offset for group assignments",
+    )
     p.add_argument("--workers", type=int, default=1, help="Parallel workers for epsilon scans")
     p.add_argument("--valuation-depth", type=int, default=None, help="Valuation projection depth")
     p.add_argument("--valuation-base", type=int, default=3, help="Valuation projection base")
@@ -687,6 +774,8 @@ def main():
                         args.b2,
                         args.xb,
                         args.projection,
+                        args.angular_groups,
+                        args.angular_phase,
                         args.valuation_depth,
                         args.valuation_base,
                     )
@@ -711,6 +800,8 @@ def main():
                     two_b2=args.b2,
                     two_xb=args.xb,
                     projection=args.projection,
+                    angular_groups=args.angular_groups,
+                    angular_phase=args.angular_phase,
                     valuation_depth=args.valuation_depth,
                     valuation_base=args.valuation_base,
                 )
@@ -737,6 +828,8 @@ def main():
                 two_b2=args.b2,
                 two_xb=args.xb,
                 projection=args.projection,
+                angular_groups=args.angular_groups,
+                angular_phase=args.angular_phase,
                 valuation_depth=args.valuation_depth,
                 valuation_base=args.valuation_base,
             )
@@ -746,6 +839,11 @@ def main():
                 print(
                     f"{table_name:<10} basis={basis:<8} "
                     f"A={rates['A']:.2f} B={rates['B']:.2f} B2={rates['B2']:.2f}"
+                )
+            elif args.inject == "anisotropy":
+                print(
+                    f"{table_name:<10} basis={basis:<8} "
+                    f"A={rates['A']:.2f} B={rates['B']:.2f} ANISO={rates['ANISO']:.2f}"
                 )
             else:
                 print(
