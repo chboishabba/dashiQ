@@ -9880,3 +9880,134 @@ If you want, next I can:
 
 But the keystone is now set.
 
+---
+
+# Dark-Sector Portal Lifetime Proxy (HL-LHC)
+
+Date: 2026-03-06
+
+Context update from the "Dark sector physics portals" thread (ID:
+69aa43c3-c560-839c-b229-74a4cb475e7b).
+
+Intent:
+- Translate the existing delta-cone / arrow-geometry machinery into a lifetime
+  proxy for hidden-sector intermediates that would manifest as displaced
+  vertices at the HL-LHC.
+- Treat "lifetime" as **residence time inside an admissible cone** along the
+  arrow/depth axis, rather than as a standalone particle parameter.
+
+Planned observables (conceptual, not yet implemented):
+- Cone slack per step: how deep a transition sits inside the admissible cone.
+- Arrow accumulation: total forward travel along the arrow/depth coordinate.
+- Boundary exit time: first step where cone-compatibility fails or hits a
+  projection boundary.
+
+Expected interpretation:
+- Larger cone residence / arrow accumulation implies longer displaced-decay
+  lengths in collider language.
+- Burst-like boundary exits correspond to projection/decay events.
+
+Status:
+- Documented intent only. Implementation and calibration remain open and are
+  tracked in `TODO.md`.
+
+---
+
+# Path C Model Update (Result)
+
+Date: 2026-03-06
+
+Thread: "Path C model update" (ID: 695867e2-b4fc-8322-8a67-75f0371fe73f)
+
+Record: ATLAS 13 TeV H->γγ differential XS, HEPData 137886
+Observable: `pT_yy` with full covariance (`pT_yy_corr`)
+Model family: log-basis shape complexity with y_ref=1
+
+Result (frozen):
+- Model A: chi2=160.32, MDL=163.32
+- Model B: chi2=151.68, MDL=157.67  (best)
+- Model C: chi2=158.85, MDL=167.84
+
+Interpretation:
+- Under full covariance and Path C framing, `pT_yy` justifies exactly one shape
+  degree of freedom (tilt) beyond normalization.
+- This is a minimal shape-complexity result, not SM-relative deformation.
+
+---
+
+# Projection–Invariance Lock (Paper Spine)
+
+Date: 2026-03-06
+
+Thread: "New chat" (ID: 6958ff8a-03c8-8321-b906-30e48e412a3a)
+
+Status:
+- The Projection–Invariance Theorem is locked as the keystone result.
+- Further ε-processing runs are not required for discovery; only for plot polish.
+
+Deliverables captured from the thread:
+- Formal theorem statement (projection–invariance of detectable structure).
+- Operational corollary (experiments recover equivalence classes, not truth).
+- Paper-spine section: "Why non-detection is expected" (physics-facing).
+- Falsifier: if two models project identically but penalized inference reliably
+  selects the more complex one, the theorem fails.
+
+Minimal refinement (publication polish):
+- Clarify asymptotic language: inference cannot prefer the complex model with
+  probability exceeding chance under repeated sampling.
+- Explicit proof skeleton: likelihood equivalence under projection + strict
+  complexity ordering implies simplest representative is selected.
+
+Recommended next action:
+- Write a concise Definitions → Theorem → Proof → Falsifier section and drop the
+  "Why non-detection is expected" text into the paper spine.
+
+---
+
+# Grokking = Valuation Resolution (Welch)
+
+Date: 2026-03-06
+
+Thread: "Grokking Valuation Resolution" (ID: 6958b536-7e18-8320-bce9-421436b4ccf2)
+
+Core claim (formal):
+- Grokking is a valuation-resolution phase transition: hierarchical (ultrametric)
+  structure exists throughout training, but is intermittently collapsed and only
+  later recovered when the learning channel resolves deeper valuation levels.
+
+Mechanism summary:
+- Observation/training channel = Archimedean projection + finite resolution +
+  simplicity bias (MDL/implicit regularization).
+- MDL acts like a cost on resolving deeper valuation digits, so intermediate
+  resolution can favor wrong-but-simple representations (loss dips).
+- Sudden grokking corresponds to a new valuation digit snapping into resolution.
+
+Welch modular-addition network (identifiability framing):
+- Solution classes: lookup-table vs Fourier/character solution.
+- Training channel (architecture + SGD + weight decay) acts as observation map
+  on hypothesis space.
+- Conjecture: grokking occurs at the critical resolution where the Fourier class
+  becomes identifiable under this channel; before that, it is aliased.
+
+Minimal falsifiable test:
+- At early time t0, measure channel distinguishability for Fourier vs lookup
+  (e.g., NTK/gradient covariance/Hessian projections or MDL cost).
+- If identifiability is ~0, grokking should not occur even if regularization is
+  later relaxed (path destroyed); if identifiability is positive, grokking should
+  occur with sufficient training.
+
+Deliverables implied:
+- A short ML-side theorem statement parallel to Projection–Invariance.
+- A concrete probe definition for Welch (choose one: NTK, Hessian, gradient
+  covariance), plus an experiment that toggles early truncation and measures
+  grokking vs failure.
+
+---
+
+# Related Chats (From ../CHAT_ID_INDEX.md)
+
+These IDs appear in the global index and are plausibly relevant to dashiQ:
+
+- Repo comparison thread (DASHIg): 69a8d3f9-1320-839c-bce8-b355a1f72f3f
+  - Canonical thread id: f41b37a699acaa8615626ef0f4ae2cf23e4c5116
+  - Title in index: "Repo Comparison: Sovereign-Lila-E8 vs Dashi"

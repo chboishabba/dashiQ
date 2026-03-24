@@ -3,6 +3,69 @@
 hella I guess?
 See `PHYSICS_TARGETS.md` for the current list of physics-forward targets tied to
 the projection -> covariance -> MDL framework (sourced from `CONTEXT.md`).
+
+Latest context update: dark-sector portal lifetime proxy is now captured in
+`CONTEXT.md` under "Dark-Sector Portal Lifetime Proxy (HL-LHC)". This is a
+documentation-only intent update; implementation is tracked in `TODO.md`.
+
+Latest result update: Path C minimal shape complexity (log-basis) on ATLAS
+record 137886 with full covariance shows `pT_yy` selects Model B (one shape DOF).
+This is a data-driven shape-complexity result, not an SM-relative deformation.
+See `CONTEXT.md` under "Path C Model Update (Result)" for the frozen numbers.
+
+Latest theorem update: Projection–Invariance is locked with operational corollary
+and a draft paper spine section ("Why non-detection is expected"). See
+`CONTEXT.md` under "Projection–Invariance Lock (Paper Spine)".
+
+Latest ML update: grokking is formalized as a valuation-resolution/identifiability
+phase transition (Welch modular-addition setup), with a minimal falsifiable test.
+See `CONTEXT.md` under "Grokking = Valuation Resolution (Welch)".
+Latest quantum update: the immediate quantum program is now "bridge first":
+define the internal quantum formalism and simulator-facing interface in this
+repo before attempting any "DASHI on quantum hardware" execution path. The
+Agda source spine currently lives in `../dashi_agda/`, with `all_code58.txt`
+copied locally for reference. See `QUANTUM_BRIDGE_INTERFACE.md` for the actual
+bridge note and the first mapping from Agda seams to `dashifine/newtest`.
+`FRACDASH` is now also part of the picture, but in a narrower way: it provides
+bridge-correctness, decode/witness, and executable-claim discipline rather
+than the quantum carrier itself.
+The ZKP framing for this bridge now lives in `QUANTUM_ZKP_ARCHITECTURE.md`, and
+the first minimal code artifact is `quantum_bridge.py`.
+The first CHSH-oriented machine instance now lives in `computer_v1.py`, which
+implements `QState -> UnitaryOp -> MeasurementRecord -> PromotionResult` with a
+FRACDASH-style witness and a simple promotability gap.
+That machine now defaults to a lattice-frame preparation seam:
+it extracts wall-plane directions with `dashifine/newtest/lattice_chsh.py` and
+then constructs the two-qubit state via
+`dashifine/newtest/chsh_harness.two_qubit_from_two_local_planes`. The simpler
+`local_planes` and `ideal_bell` prep paths remain available for comparison.
+It now also has two extension prep modes:
+- `triality_frames`: multi-leg/triality wall-mode extraction via
+  `dashifine/newtest/triality_stack.py`
+- `qutrit_planes`: qutrit-facing plane selection via
+  `dashifine/newtest/ternary_hilbert.py` and
+  `dashifine/newtest/embed_chsh_ternary.py`
+The `qutrit_planes` path is no longer routed through CHSH as its main
+measurement shell: it now uses a qutrit-native basis distribution, entropy-gap
+observable, and qutrit-specific promotion rule, while keeping embedded CHSH only
+as reference metadata in the witness.
+The `triality_frames` path is also no longer routed through CHSH as its main
+observable: it now evaluates all leg pairs, selects the best pair by maximum
+absolute correlation, and promotes based on triality-native pair-correlation
+stability.
+`computer_v2.py` now adds a typed runtime layer on top of that work:
+- `CarrierType = QUBIT | QUTRIT | TRIALITY`
+- carrier-specific measurement / promotion / witness dispatch
+- a richer qutrit `27 -> 9` motif-facing path via
+  `dashifine/newtest/map_27_to_H3x3.py`
+- the current motif prep is now built from explicit `triplet_ket` basis
+  components plus `mix_over_27`, rather than a raw hand-seeded weight vector
+This means the bridge is no longer only "multiple prep modes inside one file";
+it now has an explicit carrier-dispatched machine core.
+Current layering is now explicit:
+- `computer_v1.py` is the earlier bridge prototype and seam-exploration file
+- `computer_v2.py` is the typed orchestration/runtime layer that should absorb
+  future carrier growth unless there is a strong reason not to
 Got it — you want a **true end-to-end synthesis**, not just the Higgs chapter.
 Here is a **compressed but faithful map of the entire conversation**, from the very first ideas through to the LHC experiment, showing how everything connects.
 
