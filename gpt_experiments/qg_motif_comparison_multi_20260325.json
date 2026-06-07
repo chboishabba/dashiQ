@@ -1,0 +1,583 @@
+{
+  "comparison_models": [
+    "qg_mdl",
+    "qg_large_tail",
+    "qg_large_tail_v2",
+    "qg_ensemble",
+    "qg_projection_covariant",
+    "qg_triality_coupled",
+    "qg_ccr_experimental"
+  ],
+  "model_outputs": {
+    "qg_ccr_experimental": {
+      "metadata": {
+        "agda_source": "DASHI.Algebra.Quantum.CCRFromProjection (experimental inspiration only)",
+        "experimental": true,
+        "mix": 0.3,
+        "model_kind": "qg_ccr_experimental",
+        "operator_family": "residual_translation_mix",
+        "reference_prior": {
+          "agda_source": "DASHI.Physics.LiftToFullState.coarseProj + DASHI.Physics.Closure.MDLTradeoffShiftInstance.MDLPartsShift",
+          "beta_model": 2.5,
+          "beta_pattern": 0.6,
+          "beta_resid": 1.15,
+          "coarse_entropy": 1.3516417006922197,
+          "coarse_observable_eliminates_tail_scale": true,
+          "coarse_tail_split": {
+            "k": 1,
+            "m": 2
+          },
+          "model_kind": "qg_mdl",
+          "model_len": "countNZ(coarse)",
+          "pattern_len": "coarse disagreement / code penalty",
+          "resid_len": "countNZ(tail)"
+        }
+      },
+      "summary": {
+        "coarse_entropy": 1.4500582141330505,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.7471663632031691,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.2793476131327004,
+            "entropy": 1.4500582141330505,
+            "entropy_gap": 0.7471663632031691,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.30989326599631334
+          },
+          "motif_roll_1": {
+            "coherence": 0.27934761313270046,
+            "entropy": 1.4500582141330507,
+            "entropy_gap": 0.7471663632031689,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3098932659963133
+          },
+          "motif_roll_2": {
+            "coherence": 0.27934761313270046,
+            "entropy": 1.4500582141330507,
+            "entropy_gap": 0.7471663632031689,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3098932659963133
+          },
+          "motif_roll_3": {
+            "coherence": 0.2793476131327004,
+            "entropy": 1.4500582141330507,
+            "entropy_gap": 0.7471663632031689,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3098932659963133
+          }
+        },
+        "selected_projection": "motif_identity",
+        "selected_projection_score": 0.30989326599631334
+      }
+    },
+    "qg_dynamics": {
+      "metadata": {
+        "agda_source": "DASHI.Physics.TailCollapseProof.T\u1d63/iterate + DASHI.Physics.LiftToFullState.coarseProj + DASHI.Physics.Closure.MDLTradeoffShiftInstance.MDLPartsShift",
+        "beta_cycle": 0.85,
+        "beta_model": 2.5,
+        "beta_pattern": 0.6,
+        "beta_resid": 1.15,
+        "coarse_entropy": 0.4877735706625579,
+        "coarse_tail_split": {
+          "k": 1,
+          "m": 2
+        },
+        "cyclic_views": [
+          "(i,j)|k",
+          "(j,k)|i",
+          "(k,i)|j"
+        ],
+        "dynamics_model": "cyclic_coarse_tail_ensemble",
+        "model_kind": "qg_dynamics",
+        "reference_prior": {
+          "agda_source": "DASHI.Physics.LiftToFullState.coarseProj + DASHI.Physics.Closure.MDLTradeoffShiftInstance.MDLPartsShift",
+          "beta_model": 2.5,
+          "beta_pattern": 0.6,
+          "beta_resid": 1.15,
+          "coarse_entropy": 1.3516417006922197,
+          "coarse_observable_eliminates_tail_scale": true,
+          "coarse_tail_split": {
+            "k": 1,
+            "m": 2
+          },
+          "model_kind": "qg_mdl",
+          "model_len": "countNZ(coarse)",
+          "pattern_len": "coarse disagreement / code penalty",
+          "resid_len": "countNZ(tail)"
+        }
+      },
+      "summary": {
+        "coarse_entropy": 0.4877735706625579,
+        "coarse_support_9": 8,
+        "entropy_gap": 1.7094510066736617,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.7705852432334851,
+            "entropy": 0.4877735706625579,
+            "entropy_gap": 1.7094510066736617,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.7707854246359751
+          },
+          "motif_roll_1": {
+            "coherence": 0.7705852432334851,
+            "entropy": 0.4877735706625578,
+            "entropy_gap": 1.7094510066736617,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.7707854246359751
+          },
+          "motif_roll_2": {
+            "coherence": 0.7705852432334851,
+            "entropy": 0.48777357066255783,
+            "entropy_gap": 1.7094510066736617,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.7707854246359751
+          },
+          "motif_roll_3": {
+            "coherence": 0.7705852432334851,
+            "entropy": 0.48777357066255783,
+            "entropy_gap": 1.7094510066736617,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.7707854246359751
+          }
+        },
+        "selected_projection": "motif_identity",
+        "selected_projection_score": 0.7707854246359751
+      }
+    },
+    "qg_ensemble": {
+      "metadata": {
+        "agda_source": "DASHI.Physics.TailCollapseProof.iterate + MDLPartsShift",
+        "beta_collapse": 0.7,
+        "coarse_tail_split": {
+          "k": 2,
+          "m": 2
+        },
+        "ensemble_mode": "deterministic_enumeration",
+        "latent_dimension": 81,
+        "model_kind": "qg_ensemble"
+      },
+      "summary": {
+        "coarse_entropy": 1.4381354165904474,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.7590891607457724,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.2945665545543916,
+            "entropy": 1.4381354165904474,
+            "entropy_gap": 0.7590891607457722,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.31765856702195683
+          },
+          "motif_roll_1": {
+            "coherence": 0.2945665545543916,
+            "entropy": 1.4381354165904472,
+            "entropy_gap": 0.7590891607457724,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3176585670219569
+          },
+          "motif_roll_2": {
+            "coherence": 0.2945665545543916,
+            "entropy": 1.4381354165904472,
+            "entropy_gap": 0.7590891607457724,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3176585670219569
+          },
+          "motif_roll_3": {
+            "coherence": 0.2945665545543916,
+            "entropy": 1.4381354165904472,
+            "entropy_gap": 0.7590891607457724,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3176585670219569
+          }
+        },
+        "selected_projection": "motif_roll_1",
+        "selected_projection_score": 0.3176585670219569
+      }
+    },
+    "qg_large_tail": {
+      "metadata": {
+        "agda_source": "DASHI.Physics.TailCollapseProof.T\u1d63/iterate",
+        "coarse_tail_split": {
+          "k": 2,
+          "m": 2
+        },
+        "latent_dimension": 81,
+        "model_kind": "qg_large_tail",
+        "trajectory_average_steps": [
+          0,
+          1,
+          2
+        ]
+      },
+      "summary": {
+        "coarse_entropy": 1.410666770863691,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.7865578064725285,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.3054012707028351,
+            "entropy": 1.410666770863691,
+            "entropy_gap": 0.7865578064725285,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.33009759369248026
+          },
+          "motif_roll_1": {
+            "coherence": 0.3054012707028351,
+            "entropy": 1.410666770863691,
+            "entropy_gap": 0.7865578064725285,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.33009759369248026
+          },
+          "motif_roll_2": {
+            "coherence": 0.3054012707028351,
+            "entropy": 1.410666770863691,
+            "entropy_gap": 0.7865578064725285,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.33009759369248026
+          },
+          "motif_roll_3": {
+            "coherence": 0.3054012707028351,
+            "entropy": 1.410666770863691,
+            "entropy_gap": 0.7865578064725285,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.33009759369248026
+          }
+        },
+        "selected_projection": "motif_identity",
+        "selected_projection_score": 0.33009759369248026
+      }
+    },
+    "qg_large_tail_v2": {
+      "metadata": {
+        "agda_source": "DASHI.Physics.TailCollapseProof.T\u1d63 trajectory average (m=2,k=2)",
+        "coarse_tail_split": {
+          "k": 2,
+          "m": 2
+        },
+        "latent_dimension": 81,
+        "model_kind": "qg_large_tail_v2",
+        "step_decay": 0.6
+      },
+      "summary": {
+        "coarse_entropy": 1.3886868274515225,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.8085377498846971,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.31712493258703145,
+            "entropy": 1.3886868274515225,
+            "entropy_gap": 0.8085377498846971,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.34073822029354206
+          },
+          "motif_roll_1": {
+            "coherence": 0.3171249325870314,
+            "entropy": 1.3886868274515225,
+            "entropy_gap": 0.8085377498846971,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.34073822029354206
+          },
+          "motif_roll_2": {
+            "coherence": 0.31712493258703145,
+            "entropy": 1.3886868274515225,
+            "entropy_gap": 0.8085377498846971,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.34073822029354206
+          },
+          "motif_roll_3": {
+            "coherence": 0.31712493258703145,
+            "entropy": 1.3886868274515225,
+            "entropy_gap": 0.8085377498846971,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.34073822029354206
+          }
+        },
+        "selected_projection": "motif_identity",
+        "selected_projection_score": 0.34073822029354206
+      }
+    },
+    "qg_mdl": {
+      "metadata": {
+        "agda_source": "DASHI.Physics.LiftToFullState.coarseProj + DASHI.Physics.Closure.MDLTradeoffShiftInstance.MDLPartsShift",
+        "beta_model": 2.5,
+        "beta_pattern": 0.6,
+        "beta_resid": 1.15,
+        "coarse_entropy": 1.3516417006922197,
+        "coarse_observable_eliminates_tail_scale": true,
+        "coarse_tail_split": {
+          "k": 1,
+          "m": 2
+        },
+        "model_kind": "qg_mdl",
+        "model_len": "countNZ(coarse)",
+        "pattern_len": "coarse disagreement / code penalty",
+        "resid_len": "countNZ(tail)"
+      },
+      "summary": {
+        "coarse_entropy": 1.3516417006922197,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.8455828766439999,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.32249861493974874,
+            "entropy": 1.3516417006922197,
+            "entropy_gap": 0.8455828766439999,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3554352698355759
+          },
+          "motif_roll_1": {
+            "coherence": 0.32249861493974874,
+            "entropy": 1.3516417006922197,
+            "entropy_gap": 0.8455828766439999,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3554352698355759
+          },
+          "motif_roll_2": {
+            "coherence": 0.3224986149397488,
+            "entropy": 1.3516417006922197,
+            "entropy_gap": 0.8455828766439999,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3554352698355759
+          },
+          "motif_roll_3": {
+            "coherence": 0.32249861493974874,
+            "entropy": 1.3516417006922197,
+            "entropy_gap": 0.8455828766439999,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3554352698355759
+          }
+        },
+        "selected_projection": "motif_identity",
+        "selected_projection_score": 0.3554352698355759
+      }
+    },
+    "qg_projection_covariant": {
+      "metadata": {
+        "agda_source": "DASHI.Physics.LiftToFullState.coarse-invariant-T + MDLPartsShift",
+        "beta_model": 2.0,
+        "beta_orbit": 0.75,
+        "coarse_tail_split": {
+          "k": 2,
+          "m": 2
+        },
+        "model_kind": "qg_projection_covariant",
+        "orbit_basis": "coarse image + residual profile"
+      },
+      "summary": {
+        "coarse_entropy": 1.3442725216564129,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.8529520556798069,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.3324806965023692,
+            "entropy": 1.3442725216564129,
+            "entropy_gap": 0.8529520556798067,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3603643245177364
+          },
+          "motif_roll_1": {
+            "coherence": 0.3324806965023692,
+            "entropy": 1.3442725216564129,
+            "entropy_gap": 0.8529520556798067,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3603643245177364
+          },
+          "motif_roll_2": {
+            "coherence": 0.3324806965023692,
+            "entropy": 1.3442725216564126,
+            "entropy_gap": 0.8529520556798069,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.36036432451773653
+          },
+          "motif_roll_3": {
+            "coherence": 0.3324806965023692,
+            "entropy": 1.3442725216564129,
+            "entropy_gap": 0.8529520556798067,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.3603643245177364
+          }
+        },
+        "selected_projection": "motif_roll_2",
+        "selected_projection_score": 0.36036432451773653
+      }
+    },
+    "qg_triality_coupled": {
+      "metadata": {
+        "coupling_source": {
+          "correlation": 0.9999999294051138,
+          "mdl_cost": 2.8879728396399214e-08,
+          "pair_bias": 0.9999999711202721,
+          "selected_pair": [
+            0,
+            1
+          ],
+          "selection_model": "mdl",
+          "selection_weights": {
+            "stability": 0.36363636363636365,
+            "strength": 0.40909090909090906,
+            "symmetry": 0.22727272727272727
+          },
+          "source_params": {
+            "eigenmode_rank": 0,
+            "g_perp": 0.2,
+            "leg_plane_vectors": {
+              "0": [
+                -0.3753157786001889,
+                0.9268970095613287
+              ],
+              "1": [
+                -0.3753157786004261,
+                0.9268970095612327
+              ],
+              "2": [
+                0.9903742462720234,
+                -0.13841550607183328
+              ]
+            },
+            "n": 21,
+            "t1": 0.7,
+            "t2": 1.3,
+            "wall": 10,
+            "which_block": "A"
+          }
+        },
+        "mapping": "selected_pair -> favored coarse sectors; triality mdl_cost -> residual penalty",
+        "model_kind": "qg_triality_coupled"
+      },
+      "summary": {
+        "coarse_entropy": 1.6012749537045576,
+        "coarse_support_9": 8,
+        "entropy_gap": 0.5959496236316619,
+        "latent_support_27": 27,
+        "projection_scores": {
+          "motif_identity": {
+            "coherence": 0.23224338360185237,
+            "entropy": 1.6012749537045576,
+            "entropy_gap": 0.5959496236316619,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.2442374511196323
+          },
+          "motif_roll_1": {
+            "coherence": 0.23224338360185237,
+            "entropy": 1.6012749537045576,
+            "entropy_gap": 0.5959496236316619,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.2442374511196323
+          },
+          "motif_roll_2": {
+            "coherence": 0.2322433836018524,
+            "entropy": 1.6012749537045576,
+            "entropy_gap": 0.5959496236316619,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.2442374511196323
+          },
+          "motif_roll_3": {
+            "coherence": 0.23224338360185237,
+            "entropy": 1.6012749537045579,
+            "entropy_gap": 0.5959496236316617,
+            "max_entropy": 2.1972245773362196,
+            "score": 0.24423745111963222
+          }
+        },
+        "selected_projection": "motif_identity",
+        "selected_projection_score": 0.2442374511196323
+      }
+    }
+  },
+  "observables": {
+    "qutrit_motif27": {
+      "gap": -0.4616224232933318,
+      "observable": 1.7549734297550428,
+      "promotion": "PromotionResult(accepted=True, reason='structured_qutrit_motif_distribution', datum={'motif_probs': {'motif_0': 0.0, 'motif_1': 0.0, 'motif_2': 0.0, 'motif_3': 0.8828125, 'motif_4': 0.0, 'motif_5': 0.0625, 'motif_6': 0.0, 'motif_7': 0.0, 'motif_8': 0.0546875}, 'selected_projection': 'motif_identity', 'selected_projection_score': 0.7707854246359751, 'projection_scores': {'motif_identity': {'entropy': 0.48777357066255794, 'entropy_gap': 1.7094510066736617, 'coherence': 0.7705852432334849, 'score': 0.7707854246359751, 'max_entropy': 2.1972245773362196}, 'motif_roll_1': {'entropy': 0.4877735706625579, 'entropy_gap': 1.7094510066736617, 'coherence': 0.7705852432334849, 'score': 0.7707854246359751, 'max_entropy': 2.1972245773362196}, 'motif_roll_2': {'entropy': 0.4877735706625579, 'entropy_gap': 1.7094510066736617, 'coherence': 0.7705852432334849, 'score': 0.7707854246359751, 'max_entropy': 2.1972245773362196}, 'motif_roll_3': {'entropy': 0.48777357066255794, 'entropy_gap': 1.7094510066736617, 'coherence': 0.7705852432334849, 'score': 0.7707854246359751, 'max_entropy': 2.1972245773362196}}, 'latent_support_27': 27, 'coarse_graining': 'dashifine.newtest.map_27_to_H3x3.coarse9_from_weights27', 'entropy': 0.4422511475811768, 'entropy_gap': 1.7549734297550428})"
+    },
+    "qutrit_planes": {
+      "gap": -0.7691711846287321,
+      "observable": 1.5045657575301943,
+      "promotion": "PromotionResult(accepted=True, reason='structured_qutrit_distribution', datum={'00': 0.484375, '01': 0.0, '02': 0.0, '10': 0.0, '11': 0.515625, '12': 0.0, '20': 0.0, '21': 0.0, '22': 0.0, 'projection_scores': {'basis9_identity': {'entropy': 0.6931471805599453, 'entropy_gap': 1.5040773967762742, 'coherence': 0.5, 'score': 0.635128098571417, 'max_entropy': 2.1972245773362196}, 'basis9_swapped': {'entropy': 0.6931471805599453, 'entropy_gap': 1.5040773967762742, 'coherence': 0.5, 'score': 0.635128098571417, 'max_entropy': 2.1972245773362196}, 'basis9_shift_a': {'entropy': 0.6931471805599453, 'entropy_gap': 1.5040773967762742, 'coherence': 0.5, 'score': 0.635128098571417, 'max_entropy': 2.1972245773362196}, 'basis9_shift_b': {'entropy': 0.6931471805599453, 'entropy_gap': 1.5040773967762742, 'coherence': 0.5, 'score': 0.635128098571417, 'max_entropy': 2.1972245773362196}}, 'selected_projection': 'basis9_identity', 'selected_projection_score': 0.635128098571417, 'entropy': 0.6926588198060253, 'entropy_gap': 1.5045657575301943})"
+    },
+    "triality_frames": {
+      "gap": -0.9999999508097405,
+      "observable": 0.9999999167549409,
+      "promotion": "PromotionResult(accepted=True, reason='selected_pair_(0, 1)', datum={'selected_pair': [0, 1], 'pair_scores': {'01': {'correlation': 0.9999999167549409, 'variance': 3.1850255114915723e-15, 'strength': 0.9999999167549409, 'stability': 0.9999999999999968, 'symmetry': 1.0, 'signal_cost': 8.324506253307447e-08, 'stability_cost': 3.219646771412959e-15, 'symmetry_cost': -0.0, 'mdl_cost': 3.4054799570414984e-08, 'score': 0.999999965945201}, '02': {'correlation': -0.4999900554500171, 'variance': 3.2699657622774246e-08, 'strength': 0.4999900554500171, 'stability': 0.9999999673003429, 'symmetry': 0.9999999999999999, 'signal_cost': 0.6931670698577018, 'stability_cost': 3.269965762781636e-08, 'symmetry_cost': 1.1102230246251565e-16, 'mdl_cost': 0.2835683586507536, 'score': 0.7530916400520538}, '12': {'correlation': -0.4999900554495739, 'variance': 3.269965762279481e-08, 'strength': 0.4999900554495739, 'stability': 0.9999999673003429, 'symmetry': 0.9999999999999999, 'signal_cost': 0.6931670698585882, 'stability_cost': 3.269965762781636e-08, 'symmetry_cost': 1.1102230246251565e-16, 'mdl_cost': 0.28356835865111624, 'score': 0.7530916400517806}}, 'selection_weights': {'strength': 0.40909090909090906, 'stability': 0.36363636363636365, 'symmetry': 0.22727272727272727}, 'selection_model': 'mdl', 'mdl_penalty': 9.064933027671855e-17, 'shots_states': {'state_norm': 1.0, 'jitter_norm_mean': 0.00027807918774160945, 'jitter_norm_std': 6.813588156011446e-05}})"
+    }
+  },
+  "ranking": [
+    {
+      "coarse_entropy": 0.4877735706625579,
+      "entropy_gap": 1.7094510066736617,
+      "experimental": false,
+      "model": "qg_dynamics",
+      "selected_projection_score": 0.7707854246359751
+    },
+    {
+      "coarse_entropy": 1.3442725216564129,
+      "entropy_gap": 0.8529520556798069,
+      "experimental": false,
+      "model": "qg_projection_covariant",
+      "selected_projection_score": 0.36036432451773653
+    },
+    {
+      "coarse_entropy": 1.3516417006922197,
+      "entropy_gap": 0.8455828766439999,
+      "experimental": false,
+      "model": "qg_mdl",
+      "selected_projection_score": 0.3554352698355759
+    },
+    {
+      "coarse_entropy": 1.3886868274515225,
+      "entropy_gap": 0.8085377498846971,
+      "experimental": false,
+      "model": "qg_large_tail_v2",
+      "selected_projection_score": 0.34073822029354206
+    },
+    {
+      "coarse_entropy": 1.410666770863691,
+      "entropy_gap": 0.7865578064725285,
+      "experimental": false,
+      "model": "qg_large_tail",
+      "selected_projection_score": 0.33009759369248026
+    },
+    {
+      "coarse_entropy": 1.4381354165904474,
+      "entropy_gap": 0.7590891607457724,
+      "experimental": false,
+      "model": "qg_ensemble",
+      "selected_projection_score": 0.3176585670219569
+    },
+    {
+      "coarse_entropy": 1.4500582141330505,
+      "entropy_gap": 0.7471663632031691,
+      "experimental": true,
+      "model": "qg_ccr_experimental",
+      "selected_projection_score": 0.30989326599631334
+    },
+    {
+      "coarse_entropy": 1.6012749537045576,
+      "entropy_gap": 0.5959496236316619,
+      "experimental": false,
+      "model": "qg_triality_coupled",
+      "selected_projection_score": 0.2442374511196323
+    }
+  ],
+  "replacement_policy": {
+    "baseline_model": "qg_dynamics",
+    "baseline_summary": {
+      "coarse_entropy": 0.4877735706625579,
+      "entropy_gap": 1.7094510066736617,
+      "selected_projection_score": 0.7707854246359751
+    },
+    "decision": "qg_dynamics",
+    "name": "beat_baseline_on_score_and_gap_nonexperimental",
+    "qualifying_models": [],
+    "retain_baseline": true
+  },
+  "selected_model": "qg_dynamics"
+}

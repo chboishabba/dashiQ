@@ -114,6 +114,39 @@ Last updated: 2026-03-24
       level, but remains the earlier bridge prototype
     - `computer_v2.py` is the first carrier-dispatched machine core and should
       be treated as the default place for new carrier/runtime growth
+    - selection is now first-class in v2:
+      - qutrit projection selection across basis9/motif9 by entropy-gap +
+        coherence with promotion gated on the selection score
+      - triality pair selection by theory-weighted multi-criterion score
+        (strength/stability/symmetry; configurable weights, optional `mdl`
+        preset) with score-gated promotion
+      - the triality `mdl` preset is now explicit: it records per-pair
+        signal/stability/symmetry code costs and selects by `exp(-mdl_cost)`
+      - qutrit motif path now prefers dashifine default/curated weights when
+        present, otherwise an Agda-inspired pair of paths:
+        - static `qg_mdl` prior from ternary coarse/tail MDL counts plus a
+          coarse-pattern code penalty
+        - default `qg_dynamics` cyclic coarse-tail ensemble, with both dynamic
+          and static metadata carried into the witness
+        older structured or uniform presets remain available explicitly
+      - additive compare is now implemented, not just planned:
+        - `qg_dynamics` remains the selected baseline
+        - shared `qg_motif_models` now supports:
+          `qg_large_tail`, `qg_ensemble`, `qg_projection_covariant`,
+          `qg_triality_coupled`, and `qg_ccr_experimental`, plus the new
+          trajectory-weighted `qg_large_tail_v2`
+        - the qutrit witness now exposes selected/comparison models side by
+          side, with the baseline replacement policy embedded
+        - current comparison result: `qg_dynamics` still wins on the shared
+          motif surface; no candidate currently clears the conservative
+          replacement rule (beat baseline on both projection score and
+          entropy-gap, and not experimental)
+        - current recorded artifacts:
+          - `gpt_experiments/qg_motif_comparison_20260325.json`
+          - `gpt_experiments/qg_motif_comparison_multi_20260325.json`
+    - the highest-value next work inside the typed carriers:
+      - replace the current QG comparison family with a richer QG or
+        `dashifine/newtest` generator if one appears; MDL-grade gap still open
 - The immediate quantum priority is now explicitly:
   1. quantum simulation / internalization / bridge to DASHI
   2. only then "DASHI on a quantum computer" as a later compilation/execution

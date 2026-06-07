@@ -184,3 +184,44 @@ The first bridge module should:
   - heuristic observable claims
 
 That is the smallest honest "quantum inside DASHI" implementation target.
+
+## Current implementation state
+
+This repo now has a partial realization of that split:
+
+- `computer_v1.py`
+  - first bridge prototype
+  - direct seam exploration
+- `computer_v2.py`
+  - typed multi-carrier runtime
+  - dispatches by `QUBIT`, `QUTRIT`, and `TRIALITY`
+  - selection is now first-class for qutrit (projection family scoring with
+    entropy-gap/coherence weights; motif path can prefer dashifine defaults or
+    curated weights and otherwise fall back to an Agda-inspired ternary
+    coarse/tail MDL weighting over `Vec Trit 3`, now with an extra
+    coarse-pattern code penalty and a default cyclic coarse-tail dynamics
+    ensemble) and triality
+    (explicit MDL-style pair scoring over signal/stability/symmetry terms;
+    configurable weights, optional `mdl` preset from norm dispersion; terms
+    recorded in witness)
+
+In `O/R/C/S/L/P/G/F` terms, the main unresolved item has moved:
+
+- `O/C/S/L` are now substantially in place for the first carriers
+- `P/G/F` pressure remains inside typed carriers:
+  - `qutrit_motif27` now enters a five-candidate additive-comparison program:
+    static prior, cyclic dynamics baseline, larger-latent tail dynamics,
+    deterministic ensemble, projection-covariant generator, triality-coupled
+    generator, and an experimental CCR/Weyl-inspired path
+  - the current `qg_dynamics` path remains the default baseline, with witness
+    comparison now exposing the other candidates side by side; the policy
+    requires beating baseline on projection score and entropy-gap, and being
+    non-experimental
+  - the current governance rule is conservative: a candidate must beat
+    `qg_dynamics` on both projection score and entropy-gap, and not be
+    experimental, before baseline replacement is considered
+  - MDL-grade `F` is not yet implemented; current gaps are carrier-specific
+    heuristics using selection + entropy/correlation
+
+So the next useful work is not broader architecture. It is to improve the
+carrier-native semantics inside the typed runtime already present.

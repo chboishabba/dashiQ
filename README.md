@@ -58,14 +58,49 @@ stability.
 - carrier-specific measurement / promotion / witness dispatch
 - a richer qutrit `27 -> 9` motif-facing path via
   `dashifine/newtest/map_27_to_H3x3.py`
-- the current motif prep is now built from explicit `triplet_ket` basis
-  components plus `mix_over_27`, rather than a raw hand-seeded weight vector
+- the motif path can now derive 27-state weights from the Agda ternary
+  coarse/tail MDL surface (`Vec Trit 3` read as coarse `m=2` plus tail `k=1`)
 This means the bridge is no longer only "multiple prep modes inside one file";
 it now has an explicit carrier-dispatched machine core.
 Current layering is now explicit:
 - `computer_v1.py` is the earlier bridge prototype and seam-exploration file
 - `computer_v2.py` is the typed orchestration/runtime layer that should absorb
   future carrier growth unless there is a strong reason not to
+The next bridge priority is now inside the typed carriers rather than in
+scaffolding:
+- for `triality`, replace the current `max_abs_correlation` rule with a more
+  motivated selection functional
+- for `qutrit_motif27`, replace the current explicit triplet-basis seed if
+  `dashifine/newtest` grows a less ad hoc preparation path
+Update: `computer_v2.py` now gives both qutrit and triality carrier-native
+selection. Qutrit selection searches projection families (basis9 and motif9)
+by entropy-gap/coherence score; promotion gates on that score. Triality
+selection is now multi-criterion with theory-weighted scores
+(strength/stability/symmetry; weights configurable via prep metadata and
+with optional `triality_selection_model=mdl` preset) and score-gated promotion.
+That `mdl` path is now explicit rather than rhetorical: it computes per-pair
+signal/stability/symmetry code costs and selects by `exp(-mdl_cost)`.
+All carriers expose selection metadata in witnesses, and typed gaps use
+selection scores for qutrit/triality. The qutrit motif path now prefers a
+dashifine default or curated weight generator when available; otherwise it
+falls back to an Agda-inspired `qg_mdl` generator derived from
+`countNZ(coarse) + countNZ(tail)` before using the older structured or uniform
+presets explicitly. That static `qg_mdl` prior is now accompanied by a
+dynamics-facing default: a cyclic coarse-tail ensemble over the three triplet
+views `(i,j)|k`, `(j,k)|i`, and `(k,i)|j`, with both the dynamic metadata and
+the static prior recorded in the witness. The static prior is slightly stronger
+than plain `countNZ`: it also adds a coarse-pattern code penalty so repeated
+coarse sectors are cheaper to describe than mixed ones.
+The additive comparison layer is live: `qg_dynamics` stays the baseline while
+the qutrit motif path uses the shared `qg_motif_models` layer for larger-latent
+tail dynamics, deterministic ensembles, projection-covariant generators,
+triality-coupled generators, and an experimental CCR/Weyl-inspired path. The
+witness exposes the selected model, comparison models, per-model summaries,
+and the replacement policy. Current outcome: `qg_dynamics` remains baseline
+because it leads on projection score and entropy-gap under the conservative
+rule (beat both metrics, non-experimental). Comparison artifacts:
+- `gpt_experiments/qg_motif_comparison_20260325.json` (single observable)
+- `gpt_experiments/qg_motif_comparison_multi_20260325.json` (multi-observable)
 Got it — you want a **true end-to-end synthesis**, not just the Higgs chapter.
 Here is a **compressed but faithful map of the entire conversation**, from the very first ideas through to the LHC experiment, showing how everything connects.
 

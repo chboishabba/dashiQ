@@ -429,6 +429,67 @@ The simplest path is probably:
 That gets the bridge into a form where the existing `dashifine/newtest`
 material can plug in without pretending we already have a hardware compiler.
 
+## Current runtime status
+
+This repo now has two concrete Python runtime layers:
+
+- `computer_v1.py`
+  - seam-oriented prototype
+  - direct inspection of the first qubit / qutrit / triality loops
+  - now emits a v2-compatible witness shape at the field level
+- `computer_v2.py`
+  - typed carrier-dispatch layer
+  - `CarrierType = QUBIT | QUTRIT | TRIALITY`
+  - measurement / promotion / selection / witness / gap are dispatched by carrier
+  - this is now the default place for further carrier/runtime growth
+
+The qutrit side is now split into two runtime families:
+
+- `qutrit_planes`
+  - two-qutrit embedded state in 9D
+  - projection selection across basis9 permutations (entropy-gap + coherence)
+  - basis-distribution measurement and entropy-gap observable
+- `qutrit_motif27`
+  - 27-state latent carrier
+  - `27 -> 9` motif coarse-graining through
+    `dashifine/newtest/map_27_to_H3x3.py`
+  - projection selection across motif-rolls (entropy-gap + coherence)
+  - motif-entropy-gap observable with selection metadata
+  - motif weights now enter an additive comparison program through a shared
+    `qg_motif_models` layer
+  - default baseline remains `qg_dynamics`
+  - candidate models are:
+    - `qg_mdl`
+    - `qg_dynamics`
+    - `qg_large_tail`
+    - `qg_ensemble`
+    - `qg_projection_covariant`
+    - `qg_triality_coupled`
+    - `qg_ccr_experimental`
+  - witness/reporting now keeps baseline plus comparison models visible side
+    by side; older structured and uniform presets remain explicit baselines
+  - current policy is baseline-first: a comparison model only displaces
+    `qg_dynamics` if it improves both projection score and entropy-gap and is
+    not marked experimental
+
+The triality side is now carrier-native too:
+
+- `triality_frames`
+  - uses extracted leg-plane data from the near-zero wall mode
+  - evaluates all leg pairs
+  - selects by theory-weighted multi-criterion score (strength/stability/
+    symmetry; weights configurable via prep metadata, optional
+    `triality_selection_model=mdl` preset derived from norm dispersion),
+    with explicit signal/stability/symmetry code costs and `exp(-mdl_cost)`
+    selection recorded in witness
+  - promotes on score gate plus pair-correlation stability
+
+So the main remaining issue is no longer architectural typing. It is the
+quality of the carrier-native semantics:
+
+- `qutrit_motif27` now has a first Agda-inspired preparation generator, but it
+  is still a code-length proxy rather than a fuller QG dynamics source
+
 ## Non-goals for this stage
 
 This document does not claim:

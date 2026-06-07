@@ -64,19 +64,55 @@ TODO
       - real `qutrit_motif27` path using `map_27_to_H3x3.coarse9_from_weights27`
       - witness fields now standardized around a shared v2 schema:
         `witness_schema`, `source_semantics`, `measurement_kind`,
-        `carrier`, `evolution`, `measurement`, `observable`, `promotion`
+        `carrier`, `evolution`, `measurement`, `observable`, `promotion`,
+        `selection`
+      - qutrit selection now first-class: projection families (basis9, motif9)
+        scored by entropy-gap + coherence; promotion gates on selection score
+      - triality selection now theory-weighted multi-criterion
+        (strength/stability/symmetry, configurable weights, optional `mdl`
+        preset) with score-gated promotion
+      - the triality `mdl` path now exposes per-pair code costs and selects by
+        `exp(-mdl_cost)`
+      - qutrit motif path now prefers dashifine default/curated weights if
+        present, otherwise:
+        - static `qg_mdl` generator from the ternary coarse/tail MDL surface
+          `countNZ(coarse) + countNZ(tail)` plus a coarse-pattern code penalty
+        - default `qg_dynamics` cyclic coarse-tail ensemble with both sources
+          recorded in the witness
+      - the Agda-inspired motif path now promotes under the default
+        `qg_dynamics` runtime
+      - additive compare is now implemented:
+        - `qg_dynamics` remains the default baseline
+        - shared `qg_motif_models` now supports:
+          `qg_large_tail`
+          `qg_large_tail_v2`
+          `qg_ensemble`
+          `qg_projection_covariant`
+          `qg_triality_coupled`
+          `qg_ccr_experimental`
+        - qutrit witness now exposes selected/comparison model summaries
+        - current result: no model yet beats `qg_dynamics` under the
+          conservative replacement rule
+        - current recorded artifacts:
+          `gpt_experiments/qg_motif_comparison_20260325.json`
+          `gpt_experiments/qg_motif_comparison_multi_20260325.json`
     - `computer_v1.py` witness is now v2-compatible at the field level:
       keep using it as the prototype/seam file, not the place for new dispatch
     - next for `computer_v2.py`:
-      - replace the current triplet-basis motif seed with a less ad hoc
-        qutrit/triplet preparation path from `dashifine/newtest`
+      - refine or replace the baseline-promotion rule if we want a less
+        conservative decision boundary than “beat `qg_dynamics` on both
+        projection score and entropy-gap, and be non-experimental”
       - decide how much of `computer_v1.py` to absorb into `computer_v2.py`
         without losing the useful seam-by-seam prototype clarity
-    - next for `triality_frames`: move beyond the current max-correlation rule to
-      a more physically motivated multi-leg selection or mode-selection
-      functional
-    - next for `qutrit_planes`: move beyond the current basis/entropy observable
-      to a richer qutrit-native observable family or 27→9 motif-facing path
+      - tighten the triality `mdl` initialization beyond norm-dispersion if a
+        stronger formal penalty becomes available
+      - bring MDL-grade gap (F) per carrier; current gaps are heuristic
+    - next for `triality_frames`: refine the multi-criterion selector with a
+      principled weighting (signal, stability, symmetry) and optional
+      symmetry-breaking penalties
+    - next for `qutrit_planes` and `qutrit_motif27`: explore richer qutrit-native
+      observables or motif prep paths once `dashifine/newtest` supplies them;
+      current selection is in place, prep remains seeded
   - Borrow the right parts of `FRACDASH` into the first simulator:
     - explicit decoder/readout layer
     - exact vs approximate claim surface
